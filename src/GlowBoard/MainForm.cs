@@ -108,13 +108,20 @@ namespace GlowBoard
                                   _settings.GetInt("W", 0), _settings.GetInt("H", 0));
             bool visible = r.Width > 0 && r.Height > 0 &&
                            Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(new Rectangle(r.X + 40, r.Y + 10, Math.Max(1, r.Width - 80), Scale(30))));
-            return visible ? r : DefaultBounds();
+            if (!visible) return DefaultBounds();
+            // Giao diện mới cần rộng tối thiểu ~420px để tên team không bị cắt: nới rộng 1 lần
+            if (!_settings.GetBool("Widened420") && r.Width < Scale(420))
+            {
+                r.Width = Scale(420);
+                _settings.Set("Widened420", 1); _settings.Save();
+            }
+            return r;
         }
 
         private Rectangle DefaultBounds()
         {
             var wa = Screen.PrimaryScreen.WorkingArea;
-            int w = Scale(400), h = Scale(560);
+            int w = Scale(420), h = Scale(560);
             return new Rectangle(wa.Right - w - Scale(40), wa.Top + Scale(40), w, h);
         }
 

@@ -226,16 +226,146 @@
   .cfg .hint{font-size:10.5px;color:var(--mute);margin:-4px 0 10px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);background:#2b2d33;border:1px solid #5a5e68;padding:6px 12px;border-radius:7px;font-size:12px;opacity:0;transition:.2s;pointer-events:none;z-index:60;white-space:nowrap}
   .toast.show{opacity:1;transform:translateX(-50%)}
+
+  /* =====================================================================
+     GIAO DIỆN MONDIRO (theo bộ nhận diện chuẩn m-skill)
+     khung #1F2126 · panel #26292F · viền #363A42 · vùng board #2B2D31 · đỏ Mondiro #E5383B
+     Xanh dạ quang giữ làm "chữ ký" riêng của GlowBoard (chấm sáng, đầu mục, link đã gắn).
+     ===================================================================== */
+  :root{--chrome:#1F2126;--panel:#26292F;--hover:#2F333A;--stage:#2B2D31;--text:#E8E9EC;
+        --bg:#2B2D31;--head:#1F2126;--line:#363A42;--btn:#26292F;--btn-h:#2F333A;--txt:#E8E9EC;
+        --sub:#c4c7cd;--mute:#8D929C;--red:#E5383B;--danger:#E5383B;--off-dark:#7d828c;--warn:#F2B84B}
+  body{background:var(--chrome);color:var(--text);font-size:13px}
+  :focus-visible{outline:2px solid var(--red);outline-offset:1px}
+  #app{display:flex;flex-direction:column;height:100%}
+  .head{padding:10px 10px 10px 14px;background:var(--chrome);border-bottom:1px solid var(--line);gap:10px}
+  .head .logo{width:34px;height:34px}
+  .brand .t{font-size:17px;line-height:1.15}
+  .brand .t .m{color:var(--red)}
+  .brand .d{font-size:11.5px;color:var(--mute);margin-top:2px}
+  .head .win{gap:0;align-items:center}
+  .head .ib.icon{width:26px;height:28px;background:transparent;color:var(--mute)}
+  .head .ib.icon:hover{background:var(--hover);color:var(--text)}
+  .head .ib.icon svg{width:15px;height:15px;stroke-width:1.9}
+  .head .ib.on{color:var(--red);background:rgba(229,56,59,.12)}
+  .head .ib.on:hover{background:rgba(229,56,59,.2);color:var(--red)}
+  .chip{height:26px;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:0 8px;font-size:11.5px;margin-right:3px;gap:5px}
+  .chip .sync{width:7px;height:7px;box-shadow:0 0 0 2px rgba(57,255,122,.15)}
+  .chip .sync.off{box-shadow:none}
+  .chip .cv{width:9px;height:9px;flex:none;fill:none;stroke:var(--mute);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;display:none;transition:transform .2s}
+  .chip.open .cv{transform:rotate(180deg)}
+  .chip.click:hover,.chip.open{box-shadow:none;border-color:#4a4f59;background:var(--hover)}
+  .chip.admin{background:var(--panel);color:var(--warn)}
+  .chip.admin.click:hover,.chip.admin.open{box-shadow:none;border-color:rgba(242,184,75,.5)}
+
+  .canvas{background:var(--stage)}
+  .scroll,.view{padding:10px 10px 24px}
+  .scroll::-webkit-scrollbar-thumb{background:#454a54;border:2px solid var(--stage)}
+  .group{margin-bottom:4px}
+  .row{border-radius:6px}
+  .dot{width:11px;height:11px;margin-top:5.5px}
+  .dot::after{left:2px;top:1px;width:6px;height:4px}
+  .dot.on{box-shadow:inset 0 0 0 1.2px #c6ffd9,inset 0 -2px 3px rgba(0,60,20,.3),0 0 6px 1px rgba(57,255,122,.45)}
+  .dot.off{box-shadow:inset 0 0 0 1.2px #c9ccd2,inset 0 -2px 3px rgba(0,0,0,.2)}
+  .txt:empty::before{color:#5c616b}
+  .group>.row .txt{font-size:14px}
+  .lk{color:#4c515b}
+  .lk:hover{background:var(--hover);color:#9aa0aa}
+  .lk img{filter:grayscale(1) brightness(.55);opacity:.6}
+  .tw{color:var(--mute)}
+  .tw:hover{background:var(--hover);color:var(--text)}
+  .cnt{background:var(--panel);border:1px solid var(--line);color:var(--mute)}
+  .ab{width:20px;height:20px;border-radius:5px;background:var(--panel);border:1px solid var(--line);color:var(--mute);font-size:13px}
+  .ab:hover{background:var(--hover);color:var(--text)}
+  .ab.del:hover{background:rgba(229,56,59,.18);border-color:rgba(229,56,59,.5);color:#ff8a8c}
+  .acts{right:6px;top:3px}
+  .children .acts{top:1px}
+  /* mục con: đường kẻ dọc nối với đầu mục cha */
+  .children{margin:1px 0 2px 13px;border-left:1px solid var(--line)}
+  .children .row{padding-left:14px;padding-right:52px;color:var(--sub)}
+  .children .txt{flex:0 1 auto;min-width:24px;margin-right:0}
+  .chk{width:13px;height:13px;border:1.5px solid #6b707a;border-radius:4px}
+  .chk:hover{border-color:#9aa0aa}
+  .chk.ok{animation:chkPop .32s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes chkPop{0%{transform:scale(.6)}60%{transform:scale(1.18)}100%{transform:none}}
+  /* tick xong: đường gạch chạy ngang dòng chữ (mỗi dòng 19px) */
+  .row.done .txt{text-decoration:none;opacity:1}
+  .children .txt{background-image:linear-gradient(transparent 9.5px,currentColor 9.5px,currentColor 11px,transparent 11px);
+       background-repeat:repeat-y;background-size:0% 19px;background-position:0 0;
+       transition:background-size .45s cubic-bezier(.6,0,.2,1),color .3s}
+  .children .row.done .txt{background-size:100% 19px;color:var(--mute)}
+  .lifted{background:#34373e;box-shadow:0 10px 24px rgba(0,0,0,.45)}
+  .empty{color:var(--mute)}
+
+  /* thanh trạng thái dưới cùng */
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 14px;background:var(--chrome);border-top:1px solid var(--line);font-size:11px;flex:none}
+  .fst{display:flex;align-items:center;gap:6px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .fst i{width:6px;height:6px;border-radius:50%;background:var(--neon);flex:none}
+  .fst i.off{background:#6b707a}
+  .fst:empty{visibility:hidden}
+  .credit{color:#6B707A;font-size:11px;white-space:nowrap}
+
+  /* hộp thoại, popup */
+  .veil{background:rgba(10,11,13,.55)}
+  .dlg{background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,.5)}
+  .dlg p{color:#c4c7cd}
+  .dlg .bt button{background:var(--hover);border:1px solid var(--line)}
+  .dlg .bt button:hover{background:#383c44}
+  .dlg .bt .danger,.dlg .bt .primary{background:var(--red);border-color:var(--red);color:#fff}
+  .dlg .bt .danger:hover,.dlg .bt .primary:hover{background:#f04c4f}
+  .dlg input,.fin,.cfg input.cname{background:var(--chrome);border:1px solid var(--line);color:var(--text)}
+  .dlg input:focus,.fin:focus,.cfg input.cname:focus{border-color:var(--red)}
+  .toast{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--red);border-radius:6px;bottom:40px;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+  .who{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+  .mpop{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  .mpop .ph,.mpop .foot{border-color:var(--line)}
+  .mpop .mb:hover{background:var(--hover)}
+  .mpop .av i{border-color:var(--panel)}
+  .mpop .you{color:var(--red);background:transparent;border:1px solid rgba(229,56,59,.5);border-radius:4px;padding:0 4px;font-size:9px}
+  .mpop .rm:hover{background:var(--red)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  .bigbtn{background:var(--red);border-radius:6px}
+  .bigbtn:hover{background:#f04c4f}
+  .small button{color:var(--text)}
+  .adm .new{background:var(--red);border-radius:6px}
+  .team{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  .tacts button{background:var(--hover);border:1px solid var(--line)}
+  .tacts button:hover{background:#383c44}
+  .tacts .g{background:rgba(57,255,122,.1);border-color:rgba(57,255,122,.35);color:var(--neon)}
+  .tacts .g:hover{background:rgba(57,255,122,.18)}
+  .tacts .r{background:rgba(229,56,59,.12);border-color:rgba(229,56,59,.45);color:#ff8a8c}
+  .tacts .r:hover{background:rgba(229,56,59,.22)}
+  .st{background:rgba(57,255,122,.1)}
+  .st.lock{background:rgba(229,56,59,.14);color:#ff8a8c}
+  .cfg .crow{border-color:var(--line)}
+  .cfg .cic{background:var(--chrome)}
+  .cfg .cb{background:var(--hover);border:1px solid var(--line)}
+  .cfg .cb:hover{background:#383c44}
+  .cfg .cb.del:hover{background:rgba(229,56,59,.25);border-color:rgba(229,56,59,.5)}
+  .cfg .addb{border-color:#4a4f59}
+  .cfg .addb:hover{border-color:var(--red);color:var(--text)}
+
+  /* nút nhún nhẹ khi rê chuột */
+  @keyframes nudge{0%{transform:none}40%{transform:translateY(-2px) scale(1.07)}70%{transform:translateY(.5px) scale(.98)}100%{transform:none}}
+  .ib:hover,.lk:hover,.ab:hover,.tw:hover,.chk:hover,.chip.click:hover,.bigbtn:hover:not(:disabled),.dlg .bt button:hover,
+  .tacts button:hover,.adm .new:hover,.cfg .cb:hover,.cfg .addb:hover,.mpop .rm:hover,.codeline button:hover,.small button:hover{
+    animation:nudge .42s cubic-bezier(.3,1.5,.5,1)}
+  .dragging *{animation:none !important}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
 </style>
 </head>
 <body>
 <div id="app">
   <header class="head" id="head">
-    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
-      <rect x="3" y="3" width="58" height="58" rx="15" fill="#2a2c31" stroke="#39ff7a" stroke-width="3"/>
-      <circle cx="18" cy="22" r="5" fill="#39ff7a"/><rect x="28" y="18.5" width="24" height="7" rx="3.5" fill="#fff"/>
-      <circle cx="18" cy="38" r="5" fill="#e6e8ec"/><rect x="28" y="34.5" width="18" height="7" rx="3.5" fill="#fff" opacity=".9"/>
-      <rect x="32" y="46" width="13" height="4" rx="2" fill="#fff" opacity=".5"/>
+    <svg class="logo" viewBox="0 0 512 512" aria-hidden="true">
+      <rect x="16" y="16" width="480" height="480" rx="110" fill="#262930" stroke="#17191d" stroke-width="10"/>
+      <circle cx="150" cy="176" r="70" fill="none" stroke="#E5383B" stroke-opacity=".35" stroke-width="14"/>
+      <circle cx="150" cy="176" r="46" fill="#E5383B"/>
+      <rect x="232" y="150" width="190" height="52" rx="26" fill="#ECE8E0"/>
+      <circle cx="150" cy="330" r="38" fill="#66758A"/>
+      <rect x="232" y="304" width="140" height="52" rx="26" fill="#ECE8E0" opacity=".85"/>
+      <rect x="262" y="392" width="34" height="34" rx="9" fill="none" stroke="#8A9AB0" stroke-width="10"/>
+      <rect x="314" y="398" width="96" height="22" rx="11" fill="#8A9AB0"/>
     </svg>
     <div class="brand">
       <div class="t"><span class="m">Mondiro</span> GlowBoard</div>
@@ -244,7 +374,7 @@
     <div class="win">
       <button class="ib icon" id="bBack" title="Về danh sách team" hidden><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
       <button class="ib icon" id="bLogout" title="Thoát chế độ Admin" hidden><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg></button>
-      <span class="chip" id="chip" hidden><span class="sync" id="sync"></span><span id="chipName"></span></span>
+      <span class="chip" id="chip" hidden><span class="sync" id="sync"></span><span id="chipName"></span><svg class="cv" viewBox="0 0 10 10"><path d="M2.5 4l2.5 2.5L7.5 4"/></svg></span>
       <button class="ib icon" id="bCfg" title="Config các nút link" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <button class="ib icon" id="bTop" title="Luôn nằm trên cùng: đang tắt"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3.5 3.5v1.5h-11v-1.5L10 9z"/><path d="M12 14v7"/></svg></button>
       <button class="ib icon" id="bHide" title="Thu xuống khay hệ thống"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
@@ -252,7 +382,6 @@
   </header>
 
   <main class="canvas">
-    <div class="wm">Created by Mondiro</div>
     <div class="scroll view" id="scroll">
       <ul id="list"></ul>
       <div class="empty" id="empty" hidden>Board đang trống<br><button class="ib" id="emptyAdd">＋ Thêm đầu mục</button></div>
@@ -304,6 +433,7 @@
       </div>
     </section>
   </main>
+  <footer class="foot"><span class="fst" id="fst"></span><span class="credit">Created by Mondiro</span></footer>
 
 </div>
 
@@ -1014,6 +1144,7 @@ function show(view) {
   ["scroll", "vJoin", "vLogin", "vAdmin", "vLock"].forEach(v => $("#" + v).classList.toggle("show", v === view));
   $("#bBack").hidden = !(S.admin && view === "scroll");
   $("#bCfg").hidden = view !== "scroll";
+  if (typeof updateFoot === "function") updateFoot();
   $("#chip").classList.toggle("click", view === "scroll" && !!S.teamId);
   if (view !== "scroll") closeMembers();
   $("#bLogout").hidden = !(S.admin && view === "vAdmin");
@@ -1024,7 +1155,9 @@ function setChip(text, admin) {
   $("#chip").classList.toggle("admin", !!admin);
   $("#sub").textContent = admin && !S.teamId ? "Quản lý team" : "Keep what you want";
 }
+let syncOnline = true, onlineCount = null;
 function setSync(online) {
+  syncOnline = online; updateFoot();
   $("#sync").classList.toggle("off", !online);
   $("#chip").title = online ? "Đã đồng bộ" : "Đang offline · thay đổi sẽ tự đồng bộ khi có mạng";
 }
@@ -1138,6 +1271,7 @@ function stopListening() {
 }
 function listenItems() {
   loadCollapsed();
+  onlineCount = null; setTimeout(countOnline, 1500);
   const bref = FB.doc(FB_DB, "teams", S.teamId, "items", BUTTONS_DOC);
   S.unsubButtons = FB.onSnapshot(bref, snap => {
     BUTTONS = normButtons(snap.exists() ? snap.data().buttons : null);
@@ -1406,6 +1540,23 @@ function removeMembers(name, uids, stillOnline) {
       try { await b.commit(); toast("Đã xoá khỏi danh sách"); } catch (err) { toast(errText(err)); }
     } }] });
 }
+/* thanh trạng thái: đồng bộ + số người online (đếm 1 lần/phút, rất nhẹ) */
+function updateFoot() {
+  const f = $("#fst");
+  if (!S.teamId || !$("#scroll").classList.contains("show")) { f.textContent = ""; return; }
+  f.innerHTML = "";
+  const i = document.createElement("i"); if (!syncOnline) i.className = "off";
+  const t = document.createElement("span");
+  t.textContent = (syncOnline ? "Đã đồng bộ" : "Offline · sẽ tự đồng bộ") + (syncOnline && onlineCount != null ? " · " + onlineCount + " online" : "");
+  f.append(i, t);
+}
+function countOnline() {
+  if (!S.teamId || !$("#scroll").classList.contains("show")) return;
+  const since = FB.Timestamp.fromMillis(Date.now() - ONLINE_MS), team = S.teamId;
+  FB.getCountFromServer(FB.query(FB.collection(FB_DB, "teams", team, "members"), FB.where("lastSeen", ">", since)))
+    .then(r => { if (S.teamId === team) { onlineCount = r.data().count; updateFoot(); } }).catch(() => {});
+}
+setInterval(countOnline, 60000);
 /* báo "còn đang mở app" để cả team thấy mình online */
 setInterval(() => {
   if (!S.teamId || S.admin || !S.user || !S.code || !$("#scroll").classList.contains("show")) return;
