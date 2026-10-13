@@ -352,6 +352,16 @@
     animation:nudge .42s cubic-bezier(.3,1.5,.5,1)}
   .dragging *{animation:none !important}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+  /* ô check đã tick: màu xám */
+  .chk.ok{background:#8D929C;border-color:#8D929C}
+  .chk.ok svg{stroke:#1F2126}
+  /* tag đỏ cho mục con: chữ đậm màu đỏ, ẩn ô check */
+  .children .row.red .chk{visibility:hidden}
+  .children .row.red .txt{color:var(--red);font-weight:700;background-size:0% 19px}
+  .children .row{padding-right:76px}
+  .ab.tag svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .ab.tag:hover{color:var(--red);border-color:rgba(229,56,59,.5)}
+  .ab.tag.on{color:#fff;background:var(--red);border-color:var(--red)}
 </style>
 </head>
 <body>
@@ -526,7 +536,7 @@ window.addEventListener("blur", () => { if (saveTimer) flush(); });
 /* nội dung dùng để so sánh (không tính người sửa / thời gian) */
 function content(it) {
   return JSON.stringify([it.html, !!it.enabled, LINK_KEYS.map(k => it[k] || ""), sortObj(it.xlinks), it.order,
-    it.children.map(c => [c.id, c.html, !!c.checked, c.link || ""])]);
+    it.children.map(c => [c.id, c.html, !!c.checked, c.link || "", !!c.red])]);
 }
 /* giữ thứ tự bằng số order tăng dần; mục mới / vừa kéo sẽ được chen vào giữa 2 mục bên cạnh */
 function fixOrders() {
@@ -553,7 +563,7 @@ function fixOrders() {
 }
 function itemData(it) {
   const d = { html: it.html, enabled: !!it.enabled, order: it.order,
-    children: it.children.map(c => ({ id: c.id, html: c.html, checked: !!c.checked, link: c.link || "", by: c.by || "", at: c.at || 0 })),
+    children: it.children.map(c => ({ id: c.id, html: c.html, checked: !!c.checked, link: c.link || "", red: !!c.red, by: c.by || "", at: c.at || 0 })),
     xlinks: it.xlinks || {}, by: it.by || "", at: it.at || 0 };
   LINK_KEYS.forEach(k => d[k] = it[k] || "");
   return d;
@@ -577,7 +587,7 @@ function flush() {
     let headChanged = !old || old.html !== it.html || !!old.enabled !== !!it.enabled || LINK_KEYS.some(k => (old[k] || "") !== (it[k] || "")) || sortObj(old.xlinks) !== sortObj(it.xlinks);
     it.children.forEach(k => {
       const o = oldKids[k.id];
-      if (!o || o.html !== k.html || !!o.checked !== !!k.checked || (o.link || "") !== (k.link || "")) { k.by = me; k.at = now; }
+      if (!o || o.html !== k.html || !!o.checked !== !!k.checked || (o.link || "") !== (k.link || "") || !!o.red !== !!k.red) { k.by = me; k.at = now; }
     });
     if (headChanged || !old || old.children.length !== it.children.length) { it.by = me; it.at = now; }
     batch.set(FB.doc(FB_DB, "teams", S.teamId, "items", it.id), itemData(it));
@@ -643,6 +653,7 @@ let collapsed = new Set();
 function loadCollapsed() { try { collapsed = new Set(JSON.parse(store.get("col." + S.teamId) || "[]")); } catch (_) { collapsed = new Set(); } }
 function saveCollapsed() { store.set("col." + S.teamId, collapsed.size ? JSON.stringify([...collapsed]) : ""); }
 const CHECK_SVG = '<svg viewBox="0 0 12 12"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg>';
+const FLAG_SVG = '<svg viewBox="0 0 12 12"><path d="M3 10.5V2M3 2.3h6l-1.4 2.2L9 6.7H3"/></svg>';
 const TW_SVG = '<svg viewBox="0 0 10 10"><path d="M3.5 2l3 3-3 3"/></svg>';
 function rowHtml(node, isKid) {
   const n = isKid ? 0 : node.children.length;
@@ -650,7 +661,7 @@ function rowHtml(node, isKid) {
     ? `<span class="chk${node.checked ? " ok" : ""}" data-act="check">${CHECK_SVG}</span>`
     : `<span class="dot ${node.enabled ? "on" : "off"}" data-act="dot" title="Bật / tắt"></span>`;
   const acts = isKid
-    ? `<button class="ab add" data-act="add" title="Thêm mục con bên dưới">+</button><button class="ab del" data-act="del" title="Xoá">−</button>`
+    ? `<button class="ab tag${node.red ? " on" : ""}" data-act="tag" title="${node.red ? "Bỏ tag đỏ" : "Tag đỏ: in đậm, chữ đỏ"}">${FLAG_SVG}</button><button class="ab add" data-act="add" title="Thêm mục con bên dưới">+</button><button class="ab del" data-act="del" title="Xoá">−</button>`
     : `<button class="ab kid" data-act="kid" title="Thêm mục con">↳</button><button class="ab add" data-act="add" title="Thêm đầu mục bên dưới">+</button><button class="ab del" data-act="del" title="Xoá">−</button>`;
   const links = isKid ? "" : `<span class="links">${BUTTONS.filter(b => !b.hidden).map(b => linkBtn(node, b)).join("")}</span>`;
   const tw = !isKid && n ? `<button class="tw" data-act="toggle" title="Thu gọn / mở mục con">${TW_SVG}</button>` : "";
@@ -659,7 +670,7 @@ function rowHtml(node, isKid) {
 }
 function makeRow(node, isKid, tag) {
   const el = document.createElement(tag);
-  el.className = "row" + (isKid ? " kid" : node.enabled ? "" : " off") + (isKid && node.checked ? " done" : "");
+  el.className = "row" + (isKid ? " kid" : node.enabled ? "" : " off") + (isKid && node.red ? " red" : isKid && node.checked ? " done" : "");
   el.dataset.id = node.id;
   el.innerHTML = rowHtml(node, isKid);
   el.querySelector(".txt").innerHTML = node.html;
@@ -769,6 +780,7 @@ listEl.addEventListener("click", e => {
   switch (a.dataset.act) {
     case "link": linkClick(a, id); break;
     case "dot": f.node.enabled = !f.node.enabled; a.className = "dot " + (f.node.enabled ? "on" : "off"); row.classList.toggle("off", !f.node.enabled); changed(); break;
+    case "tag": f.node.red = !f.node.red; render(true); changed(); break;
     case "check": f.node.checked = !f.node.checked; a.classList.toggle("ok", f.node.checked); row.classList.toggle("done", f.node.checked); changed(); break;
     case "toggle": toggleCollapse(id, row.closest(".group")); break;
     case "add": f.parent ? addKid(f.parent.id, id) : addItemAfter(id); break;
@@ -854,7 +866,12 @@ listEl.addEventListener("paste", e => {
 listEl.addEventListener("keydown", e => {
   const t = e.target.closest(".txt"); if (!t) return;
   const row = t.closest(".row"), id = row.dataset.id, f = find(id);
-  if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
+  if (e.key === "Enter" && f.parent) {
+    // mục con: Enter = gõ xong (thoát chế độ gõ chữ), không xuống dòng
+    e.preventDefault();
+    t.blur(); getSelection().removeAllRanges();
+    if (saveTimer) flush();
+  } else if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
     e.preventDefault();
     f.parent ? addKid(f.parent.id, id) : addItemAfter(id);
   } else if (e.key === "Enter" && e.shiftKey) {
@@ -1297,7 +1314,7 @@ function applySnapshot(snap) {
       by: x.by || "", at: x.at || 0,
       children: (Array.isArray(x.children) ? x.children : []).map(c => ({
         id: String(c.id || newId()), html: sanitize(String(c.html || "")), checked: !!c.checked,
-        link: cleanUrl(String(c.link || "")), by: c.by || "", at: c.at || 0 })) };
+        link: cleanUrl(String(c.link || "")), red: !!c.red, by: c.by || "", at: c.at || 0 })) };
     LINK_KEYS.forEach(k => it[k] = cleanUrl(String(x[k] || "")));
     it.xlinks = {};
     if (x.xlinks && typeof x.xlinks === "object") for (const k of Object.keys(x.xlinks)) { const u = cleanUrl(String(x.xlinks[k] || "")); if (u) it.xlinks[k] = u; }

@@ -35,11 +35,13 @@ Board ghi chú dạng widget nằm trên desktop Windows, chạy ở khay hệ t
 | Đổi thứ tự | Nhấn giữ vào dòng rồi kéo lên/xuống (dòng đang gõ chữ: giữ ~0.3 giây rồi kéo) |
 | Gõ chữ | Click vào dòng. Đầu mục in đậm màu xanh dạ quang, mục con chữ trắng thường |
 | Thêm / xoá dòng | Rê chuột vào dòng → nút **+** / **−** ở cuối dòng (xoá sẽ hỏi lại). Board trống: nút **＋ Thêm đầu mục** |
-| Thêm mục con (có ô check) | Nút **↳** ở cuối dòng đầu mục. Tick ô check → chữ gạch ngang |
+| Thêm mục con (có ô check) | Nút **↳** ở cuối dòng đầu mục, hoặc nút **+** trên mục con. Tick ô check → gạch ngang chữ |
+| Gõ xong mục con | **Enter** để kết thúc gõ chữ (không xuống dòng) |
+| Tag đỏ cho mục con | Rê chuột vào mục con → nút cờ đỏ: cả câu in đậm màu đỏ, ẩn ô check. Bấm lại để bỏ |
 | Thu gọn / mở mục con | Mũi tên **⌄ / ›** ở sau các nút link của đầu mục (lưu riêng trên máy bạn; khi thu gọn sẽ hiện số mục con) |
 | Nút link sau chữ đầu mục | **click** = mở link, **double click** = chèn / sửa link (nút sáng khi đã có link) |
 | Config các nút link | Nút ⚙ trên thanh tiêu đề (cạnh nút ghim): thêm nút mới với icon PNG, sửa tooltip, ẩn / hiện, xoá. 4 nút mặc định (Reference, List task, Feedback GD, Miro) chỉ ẩn / hiện được. Áp dụng chung cả team |
-| Dòng mới | `Enter` · xuống dòng trong cùng mục: `Shift+Enter` |
+| Dòng mới | `Enter` ở đầu mục: thêm đầu mục mới · xuống dòng trong cùng mục: `Shift+Enter` |
 | Đổi cấp | `Tab`: đầu mục → mục con · `Shift+Tab`: mục con → đầu mục |
 | Di chuyển / mở rộng board | Kéo thanh tiêu đề · kéo các cạnh viền |
 | Luôn nằm trên cùng | Nút ghim 📌 trên thanh tiêu đề, hoặc khay hệ thống → **Luôn nằm trên cùng** |
