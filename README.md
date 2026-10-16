@@ -37,10 +37,10 @@ Board ghi chú dạng widget nằm trên desktop Windows, chạy ở khay hệ t
 | Thêm / xoá dòng | Rê chuột vào dòng → nút **+** / **−** ở cuối dòng (xoá sẽ hỏi lại). Board trống: nút **＋ Thêm đầu mục** |
 | Thêm mục con (có ô check) | Nút **↳** ở cuối dòng đầu mục, hoặc nút **+** trên mục con. Tick ô check → gạch ngang chữ |
 | Gõ xong mục con | **Enter** để kết thúc gõ chữ (không xuống dòng) |
-| Tag đỏ / vàng cho mục con | Rê chuột vào mục con → cờ đỏ (in đậm, chữ đỏ) hoặc cờ vàng (chữ vàng); ẩn ô check. Mỗi mục 1 tag, bấm lại để bỏ |
+| Tag đỏ / vàng cho mục con | Rê chuột vào mục con → cờ đỏ (in đậm, chữ đỏ) hoặc cờ vàng (in đậm, chữ vàng, tự thêm "Quản file:" phía trước – bỏ tag thì tự xoá); ẩn ô check. Mỗi mục 1 tag, bấm lại để bỏ |
 | Thu gọn / mở mục con | Mũi tên **⌄ / ›** ở sau các nút link của đầu mục (lưu riêng trên máy bạn; khi thu gọn sẽ hiện số mục con) |
 | Nút link sau chữ đầu mục | **click** = mở link, **double click** = chèn / sửa link (nút sáng khi đã có link) |
-| Config các nút link | Nút ⚙ trên thanh tiêu đề: ▲▼ đổi thứ tự, thêm nút mới với icon PNG, sửa tooltip, ẩn / hiện, xoá (kể cả 4 nút mặc định – có nút "Khôi phục nút mặc định"). Áp dụng chung cả team |
+| Config các nút link | Nút ⚙ trên thanh tiêu đề: nhấn giữ & kéo để đổi thứ tự (các dòng tự trượt đổi chỗ), thêm nút mới với icon PNG, sửa tooltip, ẩn / hiện, xoá (kể cả 4 nút mặc định – có nút "Khôi phục nút mặc định"). Áp dụng chung cả team |
 | Dòng mới | `Enter` ở đầu mục: thêm đầu mục mới · xuống dòng trong cùng mục: `Shift+Enter` |
 | Đổi cấp | `Tab`: đầu mục → mục con · `Shift+Tab`: mục con → đầu mục |
 | Di chuyển / mở rộng board | Kéo thanh tiêu đề · kéo các cạnh viền |
