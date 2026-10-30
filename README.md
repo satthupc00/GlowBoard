@@ -14,7 +14,7 @@ Board ghi chú dạng widget nằm trên desktop Windows, chạy ở khay hệ t
 - Lần đầu mở app: nhập **mã team** (do quản lý gửi) và **tên hiển thị**. Từ đó app tự vào lại team mỗi lần mở.
 - Mọi người trong team thấy thay đổi của nhau gần như ngay lập tức. Mất mạng vẫn ghi được, có mạng lại tự đồng bộ.
 - Rê chuột vào một dòng ~0.7 giây để xem **"Sửa bởi … · … trước"**.
-- Chấm nhỏ cạnh tên team: xanh = đã đồng bộ, xám = đang offline.
+- Tên team nằm ở góc trái thanh dưới cùng. Chấm nhỏ cạnh tên team: xanh = đã đồng bộ, xám = đang offline.
 - **Bấm vào tên team** để xem danh sách thành viên: tên, ai đang online (đang mở GlowBoard), ai offline và hoạt động lần cuối khi nào. Tên trùng nhau được gộp thành 1 dòng; Admin có nút **×** để xoá các dòng offline thừa (máy / phiên cũ).
 - **Thông báo**: khi người khác thay đổi board, máy bạn hiện thông báo Windows (gom lại, chỉ báo sau khi đã yên 15 giây không có thay đổi mới). Click vào thông báo để mở board. Tắt / bật: khay hệ thống → **Thông báo khi team thay đổi**.
 - Khay hệ thống → **Rời team / nhập mã khác**.
@@ -40,11 +40,11 @@ Board ghi chú dạng widget nằm trên desktop Windows, chạy ở khay hệ t
 | Tag đỏ / vàng cho mục con | Rê chuột vào mục con → cờ đỏ (in đậm, chữ đỏ) hoặc cờ vàng (in đậm, chữ vàng, tự thêm "Quản file:" phía trước – bỏ tag thì tự xoá); ẩn ô check. Mỗi mục 1 tag, bấm lại để bỏ |
 | Thu gọn / mở mục con | Mũi tên **⌄ / ›** ở sau các nút link của đầu mục (lưu riêng trên máy bạn; khi thu gọn sẽ hiện số mục con) |
 | Nút link sau chữ đầu mục | **click** = mở link, **double click** = chèn / sửa link (nút sáng khi đã có link) |
-| Config các nút link | Nút ⚙ trên thanh tiêu đề: nhấn giữ & kéo để đổi thứ tự (các dòng tự trượt đổi chỗ), thêm nút mới với icon PNG, sửa tooltip, ẩn / hiện, xoá (kể cả 4 nút mặc định – có nút "Khôi phục nút mặc định"). Áp dụng chung cả team |
+| Config các nút link | Nút ⚙ ở thanh dưới cùng: nhấn giữ & kéo để đổi thứ tự (các dòng tự trượt đổi chỗ), thêm nút mới với icon PNG, sửa tooltip, ẩn / hiện, xoá (kể cả 4 nút mặc định – có nút "Khôi phục nút mặc định"). Áp dụng chung cả team |
 | Dòng mới | `Enter` ở đầu mục: thêm đầu mục mới · xuống dòng trong cùng mục: `Shift+Enter` |
 | Đổi cấp | `Tab`: đầu mục → mục con · `Shift+Tab`: mục con → đầu mục |
-| Di chuyển / mở rộng board | Kéo thanh tiêu đề · kéo các cạnh viền |
-| Luôn nằm trên cùng | Nút ghim 📌 trên thanh tiêu đề, hoặc khay hệ thống → **Luôn nằm trên cùng** |
+| Di chuyển / mở rộng board | Kéo thanh dưới cùng (chỗ trống) · kéo các cạnh viền |
+| Luôn nằm trên cùng | Nút ghim 📌 ở thanh dưới cùng, hoặc khay hệ thống → **Luôn nằm trên cùng** |
 | Hiện board lên trên | Click icon ở khay hệ thống (board tự lùi xuống dưới khi bạn click ra chỗ khác) |
 
 ## Tự cập nhật

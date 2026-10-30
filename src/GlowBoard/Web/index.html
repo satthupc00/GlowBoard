@@ -29,15 +29,6 @@
   button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
   #app{display:flex;flex-direction:column;height:100%}
 
-  /* ---------- header (kéo để di chuyển cửa sổ) ---------- */
-  .head{display:flex;align-items:center;gap:10px;padding:9px 10px 8px 12px;background:var(--head);border-bottom:1px solid var(--line);cursor:default;flex:none}
-  .head .logo{width:30px;height:30px;flex:none;pointer-events:none}
-  .brand{line-height:1.2;flex:none;pointer-events:none}
-  .brand .t{font-size:16px;font-weight:700;white-space:nowrap}
-  .brand .t .m{color:var(--red)}
-  .brand .d{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .head .win{margin-left:auto;display:flex;gap:3px;flex:0 1 auto;min-width:0;justify-content:flex-end}
-  .head .win .ib{flex:none}
   .ib{height:26px;min-width:26px;padding:0 8px;border-radius:6px;background:var(--btn);color:#eef0f3;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
   .ib:hover{background:var(--btn-h)}
   .ib svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -238,17 +229,6 @@
   body{background:var(--chrome);color:var(--text);font-size:13px}
   :focus-visible{outline:2px solid var(--red);outline-offset:1px}
   #app{display:flex;flex-direction:column;height:100%}
-  .head{padding:10px 10px 10px 14px;background:var(--chrome);border-bottom:1px solid var(--line);gap:10px}
-  .head .logo{width:34px;height:34px}
-  .brand .t{font-size:17px;line-height:1.15}
-  .brand .t .m{color:var(--red)}
-  .brand .d{font-size:11.5px;color:var(--mute);margin-top:2px}
-  .head .win{gap:0;align-items:center}
-  .head .ib.icon{width:26px;height:28px;background:transparent;color:var(--mute)}
-  .head .ib.icon:hover{background:var(--hover);color:var(--text)}
-  .head .ib.icon svg{width:15px;height:15px;stroke-width:1.9}
-  .head .ib.on{color:var(--red);background:rgba(229,56,59,.12)}
-  .head .ib.on:hover{background:rgba(229,56,59,.2);color:var(--red)}
   .chip{height:26px;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:0 8px;font-size:11.5px;margin-right:3px;gap:5px}
   .chip .sync{width:7px;height:7px;box-shadow:0 0 0 2px rgba(57,255,122,.15)}
   .chip .sync.off{box-shadow:none}
@@ -298,7 +278,15 @@
   .empty{color:var(--mute)}
 
   /* thanh trạng thái dưới cùng */
-  .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 14px;background:var(--chrome);border-top:1px solid var(--line);font-size:11px;flex:none}
+  .foot{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;background:var(--chrome);border-top:1px solid var(--line);font-size:11px;flex:none;cursor:default}
+  .foot .chip{height:24px;margin:0}
+  .foot .win{margin-left:auto;display:flex;align-items:center;gap:0;flex:none}
+  .foot .ib.icon{width:24px;height:24px;background:transparent;color:var(--mute)}
+  .foot .ib.icon:hover{background:var(--hover);color:var(--text)}
+  .foot .ib.icon svg{width:14px;height:14px;stroke-width:1.9}
+  .foot .ib.on{color:var(--red);background:rgba(229,56,59,.12)}
+  .foot .ib.on:hover{background:rgba(229,56,59,.2);color:var(--red)}
+  .foot .credit{margin-left:6px}
   .fst{display:flex;align-items:center;gap:6px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .fst i{width:6px;height:6px;border-radius:50%;background:var(--neon);flex:none}
   .fst i.off{background:#6b707a}
@@ -376,30 +364,6 @@
 </head>
 <body>
 <div id="app">
-  <header class="head" id="head">
-    <svg class="logo" viewBox="0 0 512 512" aria-hidden="true">
-      <rect x="16" y="16" width="480" height="480" rx="110" fill="#262930" stroke="#17191d" stroke-width="10"/>
-      <circle cx="150" cy="176" r="70" fill="none" stroke="#E5383B" stroke-opacity=".35" stroke-width="14"/>
-      <circle cx="150" cy="176" r="46" fill="#E5383B"/>
-      <rect x="232" y="150" width="190" height="52" rx="26" fill="#ECE8E0"/>
-      <circle cx="150" cy="330" r="38" fill="#66758A"/>
-      <rect x="232" y="304" width="140" height="52" rx="26" fill="#ECE8E0" opacity=".85"/>
-      <rect x="262" y="392" width="34" height="34" rx="9" fill="none" stroke="#8A9AB0" stroke-width="10"/>
-      <rect x="314" y="398" width="96" height="22" rx="11" fill="#8A9AB0"/>
-    </svg>
-    <div class="brand">
-      <div class="t"><span class="m">Mondiro</span> GlowBoard</div>
-      <div class="d"><span id="sub">Keep what you want</span></div>
-    </div>
-    <div class="win">
-      <button class="ib icon" id="bBack" title="Về danh sách team" hidden><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <button class="ib icon" id="bLogout" title="Thoát chế độ Admin" hidden><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg></button>
-      <span class="chip" id="chip" hidden><span class="sync" id="sync"></span><span id="chipName"></span><svg class="cv" viewBox="0 0 10 10"><path d="M2.5 4l2.5 2.5L7.5 4"/></svg></span>
-      <button class="ib icon" id="bCfg" title="Config các nút link" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-      <button class="ib icon" id="bTop" title="Luôn nằm trên cùng: đang tắt"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3.5 3.5v1.5h-11v-1.5L10 9z"/><path d="M12 14v7"/></svg></button>
-      <button class="ib icon" id="bHide" title="Thu xuống khay hệ thống"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-    </div>
-  </header>
 
   <main class="canvas">
     <div class="scroll view" id="scroll">
@@ -453,7 +417,18 @@
       </div>
     </section>
   </main>
-  <footer class="foot"><span class="fst" id="fst"></span><span class="credit">Created by Mondiro</span></footer>
+  <footer class="foot" id="foot">
+  <span class="chip" id="chip" hidden><span class="sync" id="sync"></span><span id="chipName"></span><svg class="cv" viewBox="0 0 10 10"><path d="M2.5 4l2.5 2.5L7.5 4"/></svg></span>
+    <span class="fst" id="fst"></span>
+    <div class="win">
+  <button class="ib icon" id="bBack" title="Về danh sách team" hidden><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <button class="ib icon" id="bLogout" title="Thoát chế độ Admin" hidden><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg></button>
+  <button class="ib icon" id="bCfg" title="Config các nút link" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  <button class="ib icon" id="bTop" title="Luôn nằm trên cùng: đang tắt"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3.5 3.5v1.5h-11v-1.5L10 9z"/><path d="M12 14v7"/></svg></button>
+  <button class="ib icon" id="bHide" title="Thu xuống khay hệ thống"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    </div>
+    <span class="credit">Created by Mondiro</span>
+  </footer>
 
 </div>
 
@@ -1100,10 +1075,10 @@ function toast(m) {
 }
 
 $("#emptyAdd").onclick = () => addItemAfter(null);
-document.querySelectorAll(".head .ib").forEach(b => b.addEventListener("mousedown", e => e.preventDefault()));
+document.querySelectorAll(".foot .ib").forEach(b => b.addEventListener("mousedown", e => e.preventDefault()));
 
-/* kéo thanh tiêu đề để di chuyển cửa sổ */
-$("#head").addEventListener("pointerdown", e => {
+/* kéo thanh dưới cùng để di chuyển cửa sổ */
+$("#foot").addEventListener("pointerdown", e => {
   if (e.button === 0 && !e.target.closest("button,.chip")) { e.preventDefault(); send("drag"); }
 });
 $("#bTop").onclick = () => send("toggleTop");
@@ -1192,7 +1167,6 @@ function setChip(text, admin) {
   $("#chip").hidden = !text;
   $("#chipName").textContent = text || "";
   $("#chip").classList.toggle("admin", !!admin);
-  $("#sub").textContent = admin && !S.teamId ? "Quản lý team" : "Keep what you want";
 }
 let syncOnline = true, onlineCount = null;
 function setSync(online) {
@@ -1582,8 +1556,8 @@ function closeMembers() {
 }
 function placeMembers() {
   const r = $("#chip").getBoundingClientRect();
-  mpop.style.top = (r.bottom + 6) + "px";
-  mpop.style.left = Math.max(6, Math.min(r.left + r.width / 2 - 125, innerWidth - 256)) + "px";
+  mpop.style.top = ""; mpop.style.bottom = (innerHeight - r.top + 6) + "px";
+  mpop.style.left = Math.max(6, Math.min(r.left, innerWidth - 256)) + "px";
 }
 window.addEventListener("resize", () => { if (mpop.classList.contains("show")) placeMembers(); });
 document.addEventListener("mousedown", e => { if (mpop.classList.contains("show") && !e.target.closest("#mpop,#chip,#veil")) closeMembers(); });
@@ -1655,10 +1629,10 @@ function updateFoot() {
   const f = $("#fst");
   if (!S.teamId || !$("#scroll").classList.contains("show")) { f.textContent = ""; return; }
   f.innerHTML = "";
-  const i = document.createElement("i"); if (!syncOnline) i.className = "off";
   const t = document.createElement("span");
-  t.textContent = (syncOnline ? "Đã đồng bộ" : "Offline · sẽ tự đồng bộ") + (syncOnline && onlineCount != null ? " · " + onlineCount + " online" : "");
-  f.append(i, t);
+  t.textContent = syncOnline ? (onlineCount != null ? onlineCount + " online" : "Đã đồng bộ") : "Offline";
+  f.title = syncOnline ? "Đã đồng bộ" : "Mất mạng · sẽ tự đồng bộ khi có mạng";
+  f.append(t);
 }
 function countOnline() {
   if (!S.teamId || !$("#scroll").classList.contains("show")) return;
