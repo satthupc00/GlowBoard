@@ -18,7 +18,7 @@ namespace GlowBoard
     internal sealed class Updater
     {
         private const string Owner = "satthupc00";
-        private const string Repo = "Mon_Keep";
+        private const string Repo = "GlowBoard";
         private const string AssetName = "GlowBoard_Windows_x64.zip";
 
         private static readonly string UpdateDir = Path.Combine(
