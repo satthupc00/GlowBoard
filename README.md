@@ -47,6 +47,23 @@ Board ghi chú dạng widget nằm trên desktop Windows, chạy ở khay hệ t
 | Luôn nằm trên cùng | Nút ghim 📌 ở thanh dưới cùng, hoặc khay hệ thống → **Luôn nằm trên cùng** |
 | Hiện board lên trên | Click icon ở khay hệ thống (board tự lùi xuống dưới khi bạn click ra chỗ khác) |
 
+## Overview – tổng quan task từ Google Sheet
+
+Nút **▦ Overview** ở thanh dưới cùng (cạnh ⚙) mở bảng tổng quan, đọc các file Google Sheet trong folder Drive của team.
+
+- Mỗi file sheet = 1 mục lớn: tên file, ô chọn **tab** (mặc định tab ngoài cùng bên trái), số task đã xong / tổng và thanh tiến độ.
+- Dưới mỗi file là từng người (cột **Assignee**): **Đang** = WIP · **Xong** = Done · **Còn** = To-do, N/A, ô trống · số xám = tổng task. **Reject** không được đếm.
+- Bấm vào tên người để xem danh sách task (lấy dòng đầu ở cột **Miêu tả**): ● đang làm · ○ còn lại · ✓ đã xong.
+- Bấm icon sheet xanh để mở file · bấm tên file để thu gọn · **Làm mới** để tải lại (tự tải lại khi mở nếu dữ liệu cũ hơn 2 phút).
+- Tab đã chọn và mục thu gọn được nhớ riêng trên máy bạn.
+
+**Kết nối lần đầu (1 người làm cho cả team, người đó cần quyền xem folder Drive):**
+1. Mở Overview → bấm **Copy script** (code nằm ở `apps-script/GlowBoard_Overview.gs`).
+2. Vào script.google.com → **New project** → xoá code mẫu → dán → lưu.
+3. **Deploy → New deployment** → loại **Web app**, Execute as **Me**, Who has access **Anyone** → Deploy → cho phép quyền.
+4. Copy **Web app URL** (đuôi `/exec`) dán vào ô trong Overview → **Kết nối**. Cả team tự dùng chung link này.
+   Đổi / ngắt link: icon 🔗 trên thanh Overview. Muốn đổi folder: sửa dòng `FOLDER_ID` trong script rồi Deploy lại (Manage deployments → Edit → New version).
+
 ## Tự cập nhật
 Mỗi lần push thay đổi trong `src/` lên GitHub, GitHub Actions (`.github/workflows/release.yml`) tự build và tạo một **Release** mới (`v1.0.<số lần build>`).
 App kiểm tra bản mới 30 giây sau khi mở và mỗi 2 giờ. Khi có bản mới, app tải sẵn và tự khởi động lại lúc bạn không thao tác trên board.

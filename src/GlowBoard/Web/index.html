@@ -360,6 +360,86 @@
   .cfg .crow:hover .grip{color:var(--mute)}
   .cfg .grip svg{width:8px;height:12px;fill:currentColor}
   .cfg .addb + .addb{margin-top:-6px}
+
+  /* ---------- Overview: tổng quan task từ Google Sheet ---------- */
+  .ovp{position:absolute;inset:0;z-index:20;background:var(--stage);display:flex;flex-direction:column;opacity:0;transform:translateY(14px);
+       pointer-events:none;transition:opacity .2s ease,transform .26s cubic-bezier(.22,1,.36,1);visibility:hidden}
+  .ovp.show{opacity:1;transform:none;pointer-events:auto;visibility:visible}
+  .ovh{display:flex;align-items:center;gap:8px;padding:7px 10px 7px 6px;background:var(--chrome);border-bottom:1px solid var(--line);flex:none}
+  .ovh .ib.icon{width:26px;height:26px;background:transparent;color:var(--mute)}
+  .ovh .ib.icon:hover{background:var(--hover);color:var(--text)}
+  .ovt{flex:1;min-width:0;line-height:1.25}
+  .ovt b{font-size:14px}
+  .ovt .sub{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ovbtn{height:26px;padding:0 9px;border-radius:6px;background:var(--panel);border:1px solid var(--line);font-size:11.5px;display:inline-flex;align-items:center;gap:5px;color:var(--text);flex:none}
+  .ovbtn:hover:not(:disabled){border-color:var(--red);transform:translateY(-1px)}
+  .ovbtn:disabled{opacity:.5}
+  .ovbtn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ovbtn.spin svg{animation:ovSpin .8s linear infinite}
+  @keyframes ovSpin{to{transform:rotate(360deg)}}
+  .ovb{flex:1;min-height:0;overflow:auto;padding:8px 8px 20px}
+  .ovb::-webkit-scrollbar{width:9px}
+  .ovb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:9px;border:2px solid var(--stage)}
+  .of{margin:0 0 8px}
+  .ofh{display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:6px;cursor:pointer}
+  .ofh:hover{background:var(--hover)}
+  .ofh .arr{width:12px;height:12px;flex:none;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s cubic-bezier(.22,1,.36,1)}
+  .of.fold .ofh .arr{transform:rotate(-90deg)}
+  .osheet{width:18px;height:18px;flex:none;border-radius:4px;display:grid;place-items:center}
+  .osheet svg{width:16px;height:16px}
+  .osheet:hover{box-shadow:0 0 0 1.5px var(--red)}
+  .ofh .nm{font-weight:700;color:var(--neon);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+  .otab{flex:none;display:inline-flex;align-items:center;gap:4px;height:20px;max-width:110px;padding:0 6px;border-radius:5px;background:var(--panel);border:1px solid var(--line);font-size:11px;color:#c4c7cd}
+  .otab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .otab svg{width:9px;height:9px;flex:none;fill:none;stroke:var(--mute);stroke-width:1.8;transition:transform .2s}
+  .otab:hover,.otab.open{border-color:var(--red);color:#fff}
+  .otab.open svg{transform:rotate(180deg)}
+  .ofh .tot{margin-left:auto;flex:none;font-size:11px;color:var(--mute);white-space:nowrap;padding-left:4px}
+  .oprog{height:3px;border-radius:3px;background:#3a3e46;margin:2px 6px 4px 31px;overflow:hidden}
+  .oprog i{display:block;height:100%;background:var(--neon);border-radius:3px;transition:width .45s cubic-bezier(.22,1,.36,1)}
+  .ofold{display:grid;grid-template-rows:1fr;transition:grid-template-rows .26s cubic-bezier(.22,1,.36,1)}
+  .of.fold .ofold{grid-template-rows:0fr}
+  .ofold>div{overflow:hidden;min-height:0}
+  .op{display:flex;align-items:center;gap:6px;padding:3px 6px 3px 31px;border-radius:6px;font-size:13px;cursor:pointer;transition:background .12s}
+  .op:hover,.op.open{background:var(--hover)}
+  .op .av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:#1d1f23;flex:none;margin-right:3px}
+  .op .pn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill{flex:none;font-size:11px;padding:0 6px;height:18px;line-height:18px;border-radius:9px;font-weight:600}
+  .pill.wip{color:var(--warn);background:rgba(242,184,75,.12)}
+  .pill.done{color:var(--neon);background:rgba(57,255,122,.1)}
+  .pill.left{color:#ff8a8c;background:rgba(229,56,59,.12)}
+  .pill.all{color:#c4c7cd;background:#363a42;min-width:26px;text-align:center}
+  .otasks{display:grid;grid-template-rows:0fr;transition:grid-template-rows .24s cubic-bezier(.22,1,.36,1)}
+  .op.open+.otasks{grid-template-rows:1fr}
+  .otasks>div{overflow:hidden;min-height:0;padding-left:60px;font-size:12px;line-height:19px}
+  .otasks>div>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px}
+  .otasks>div>div:last-child{margin-bottom:4px}
+  .otasks .wip::before{content:"●";color:var(--warn);font-size:9px;display:inline-block;width:13px}
+  .otasks .left{color:#ff8a8c}
+  .otasks .left::before{content:"○";font-size:9px;display:inline-block;width:13px}
+  .otasks .done{color:var(--mute);text-decoration:line-through}
+  .otasks .done::before{content:"✓";color:var(--neon);display:inline-block;width:13px;text-decoration:none}
+  .onote{font-size:12px;color:var(--mute);padding:2px 6px 4px 31px}
+  .onote.bad{color:#ff9b9b}
+  .obar{font-size:12px;color:#ff9b9b;background:rgba(229,56,59,.1);border:1px solid rgba(229,56,59,.3);border-radius:6px;padding:6px 9px;margin:0 2px 8px}
+  .oempty{padding:28px 18px;text-align:center;color:var(--mute);font-size:13px;line-height:1.5}
+  .oempty .bigbtn{width:auto;display:inline-block;padding:7px 16px;margin-top:10px}
+  .ovset{padding:6px 6px 10px;font-size:12.5px;line-height:1.5;color:#c4c7cd}
+  .ovset h3{margin:2px 0 4px;color:#fff;font-size:15px}
+  .ovset ol{margin:6px 0 10px;padding-left:20px}
+  .ovset li{margin-bottom:5px}
+  .ovset b{color:#fff}
+  .ovset a{color:var(--neon);cursor:pointer;text-decoration:underline}
+  .ovset .row2{display:flex;gap:8px;margin-bottom:10px}
+  .ovmenu{position:fixed;z-index:44;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 14px 34px rgba(0,0,0,.55);padding:4px;min-width:150px;max-width:240px;max-height:60vh;overflow:auto;display:none;font-size:12px}
+  .ovmenu.show{display:block;animation:popIn .16s ease-out}
+  .ovmenu button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:5px 8px;border-radius:5px;color:var(--text)}
+  .ovmenu button:hover{background:var(--hover)}
+  .ovmenu button.on{background:#3A2426;color:#fff}
+  .ovmenu button span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ovmenu button small{color:var(--mute);font-size:10.5px;flex:none}
+  .foot .ib.ov.on{color:#fff;background:rgba(229,56,59,.16);box-shadow:0 0 0 1.5px var(--red)}
+  @media (prefers-reduced-motion: reduce){.ovp,.ofold,.otasks,.oprog i,.ofh .arr{transition:none}.ovbtn.spin svg{animation:none}}
 </style>
 </head>
 <body>
@@ -416,14 +496,102 @@
         <button class="bigbtn" id="lockOther">Nhập mã khác</button>
       </div>
     </section>
+    <!-- Overview: tổng quan task từ Google Sheet -->
+    <section class="ovp" id="ovp" aria-label="Overview">
+      <div class="ovh">
+        <button class="ib icon" id="ovBack" title="Đóng Overview (Esc)"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="ovt"><b>Overview</b><div class="sub" id="ovSub"></div></div>
+        <button class="ib icon" id="ovLink" title="Đổi link Apps Script" hidden><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></button>
+        <button class="ovbtn" id="ovRef" title="Làm mới"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Làm mới</button>
+      </div>
+      <div class="ovb" id="ovBody"></div>
+    </section>
   </main>
+  <div class="ovmenu" id="ovMenu"></div>
+  <script type="text/plain" id="gsCode">/**
+ * GlowBoard Overview – Created by Mondiro
+ * Đọc các file Google Sheet trong 1 folder Drive, trả về cột Assignee / Status / Miêu tả
+ * để GlowBoard hiện bảng Overview. Deploy: Web app · Execute as: Me · Who has access: Anyone.
+ */
+const FOLDER_ID = '1qU8jVJETb_pg5C2hocS3Hd2s4_jNf0ZG';
+
+function doGet(e) {
+  const p = (e &amp;&amp; e.parameter) || {};
+  let out;
+  try {
+    if (p.file) {
+      out = { ok: true, file: readFile(SpreadsheetApp.openById(p.file), p.tab) };
+    } else {
+      let tabs = {};
+      try { tabs = JSON.parse(p.tabs || '{}') || {}; } catch (err) {}
+      out = { ok: true, folder: DriveApp.getFolderById(FOLDER_ID).getName(), files: listFiles(tabs) };
+    }
+  } catch (err) {
+    out = { ok: false, error: String((err &amp;&amp; err.message) || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function listFiles(tabs) {
+  const it = DriveApp.getFolderById(FOLDER_ID).getFilesByType(MimeType.GOOGLE_SHEETS);
+  const files = [];
+  while (it.hasNext()) {
+    const f = it.next();
+    try { files.push(readFile(SpreadsheetApp.open(f), tabs[f.getId()])); }
+    catch (err) { files.push({ id: f.getId(), name: f.getName(), error: String((err &amp;&amp; err.message) || err) }); }
+  }
+  files.sort(function (a, b) { return a.name.localeCompare(b.name); });
+  return files;
+}
+
+// Tab mặc định = tab ngoài cùng bên trái
+function readFile(ss, tabName) {
+  const sheets = ss.getSheets();
+  const sh = (tabName &amp;&amp; ss.getSheetByName(tabName)) || sheets[0];
+  return {
+    id: ss.getId(), name: ss.getName(), url: ss.getUrl(),
+    tabs: sheets.map(function (s) { return s.getName(); }),
+    tab: sh.getName(), rows: readRows(sh)
+  };
+}
+
+// Mỗi dòng: [assignee, status, id, miêu tả]. Dòng tiêu đề = dòng đầu tiên có cả "Assign…" và "Status".
+function readRows(sh) {
+  const v = sh.getDataRange().getDisplayValues();
+  let h = -1, cA = -1, cS = -1, cD = -1, cI = -1;
+  for (let r = 0; r &lt; Math.min(v.length, 15) &amp;&amp; h &lt; 0; r++) {
+    cA = cS = cD = cI = -1;
+    v[r].forEach(function (x, c) {
+      const t = String(x).toLowerCase().replace(/\s+/g, ' ').trim();
+      if (!t) return;
+      if (cA &lt; 0 &amp;&amp; /assign/.test(t)) cA = c;
+      else if (cS &lt; 0 &amp;&amp; /^(status|trạng thái)/.test(t)) cS = c;
+      else if (cD &lt; 0 &amp;&amp; /(miêu tả|mô tả|description|tên task|task name)/.test(t)) cD = c;
+      else if (cI &lt; 0 &amp;&amp; /(\bid\b|số thứ tự|stt)/.test(t)) cI = c;
+    });
+    if (cA &gt;= 0 &amp;&amp; cS &gt;= 0) h = r;
+  }
+  if (h &lt; 0) return null;
+  const rows = [];
+  let lastId = '';
+  for (let r = h + 1; r &lt; v.length; r++) {
+    const id = cI &gt;= 0 ? String(v[r][cI]).trim() : '';
+    if (id) lastId = id;
+    const a = String(v[r][cA]).trim();
+    if (!a) continue;
+    rows.push([a, String(v[r][cS]).trim(), id || lastId, cD &gt;= 0 ? String(v[r][cD]).trim().slice(0, 160) : '']);
+  }
+  return rows;
+}
+</script>
   <footer class="foot" id="foot">
   <span class="chip" id="chip" hidden><span class="sync" id="sync"></span><span id="chipName"></span><svg class="cv" viewBox="0 0 10 10"><path d="M2.5 4l2.5 2.5L7.5 4"/></svg></span>
     <span class="fst" id="fst"></span>
     <div class="win">
   <button class="ib icon" id="bBack" title="Về danh sách team" hidden><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
   <button class="ib icon" id="bLogout" title="Thoát chế độ Admin" hidden><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg></button>
-  <button class="ib icon" id="bCfg" title="Config các nút link" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  <button class="ib icon ov" id="bOv" title="Overview – tổng quan task của team" hidden><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg></button>
+    <button class="ib icon" id="bCfg" title="Config các nút link" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   <button class="ib icon" id="bTop" title="Luôn nằm trên cùng: đang tắt"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3.5 3.5v1.5h-11v-1.5L10 9z"/><path d="M12 14v7"/></svg></button>
   <button class="ib icon" id="bHide" title="Thu xuống khay hệ thống"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
     </div>
@@ -1158,6 +1326,8 @@ function show(view) {
   ["scroll", "vJoin", "vLogin", "vAdmin", "vLock"].forEach(v => $("#" + v).classList.toggle("show", v === view));
   $("#bBack").hidden = !(S.admin && view === "scroll");
   $("#bCfg").hidden = view !== "scroll";
+  $("#bOv").hidden = view !== "scroll";
+  if (view !== "scroll" && OV.open) closeOverview();
   if (typeof updateFoot === "function") updateFoot();
   $("#chip").classList.toggle("click", view === "scroll" && !!S.teamId);
   if (view !== "scroll") closeMembers();
@@ -1256,6 +1426,7 @@ function stopTeam() {
   if (saveTimer) flush();
   closeMembers();
   if (S.unsubItems) S.unsubItems(); if (S.unsubTeam) S.unsubTeam(); if (S.unsubButtons) S.unsubButtons();
+  stopOverview();
   S.unsubItems = S.unsubTeam = S.unsubButtons = null;
   BUTTONS = defaultButtons(); collapsed = new Set();
   S.teamId = null; S.serverItems = {}; synced = {}; doc = { items: [] }; renderedSig = "";
@@ -1281,11 +1452,13 @@ function openTeam(teamId, name) {
 function stopListening() {
   if (S.unsubItems) { S.unsubItems(); S.unsubItems = null; }
   if (S.unsubButtons) { S.unsubButtons(); S.unsubButtons = null; }
+  stopOverview();
 }
 function listenItems() {
   loadCollapsed();
   onlineCount = null; setTimeout(countOnline, 1500);
   const bref = FB.doc(FB_DB, "teams", S.teamId, "items", BUTTONS_DOC);
+  listenOverview();
   S.unsubButtons = FB.onSnapshot(bref, snap => {
     BUTTONS = normButtons(snap.exists() ? snap.data().buttons : null);
     render();
@@ -1860,9 +2033,281 @@ function copyText(t) {
   if (navigator.clipboard) navigator.clipboard.writeText(t).catch(() => {});
 }
 
+/* ================= Overview: tổng quan task từ các file Google Sheet =================
+   Link Apps Script (web app) lưu chung cho team ở teams/{team}/items/_overview (không có "order").
+   Apps Script đọc folder Drive → trả về [assignee, status, id, miêu tả] của tab ngoài cùng bên trái
+   (hoặc tab đã chọn). Dữ liệu lần tải gần nhất cache trên máy để mở là thấy ngay. */
+const OV_DOC = "_overview";
+const OV_STALE = 2 * 60 * 1000;
+const OV = { url: "", data: null, at: 0, loading: false, err: "", open: false, openP: new Set(), busy: new Set(), unsub: null };
+const ovp = $("#ovp"), ovBody = $("#ovBody"), ovMenu = $("#ovMenu");
+const OV_ORDER = { wip: 0, left: 1, done: 2 };
+const SHEET_SVG = '<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2.5" fill="#1FA463"/><path d="M8 9h8M8 13h8M8 17h8M12 9v8" stroke="#fff" stroke-width="1.6" fill="none"/></svg>';
+const ARR_SVG = '<svg class="arr" viewBox="0 0 12 12"><path d="M3 4.5l3 3 3-3"/></svg>';
+const CHEV_SVG = '<svg viewBox="0 0 10 10"><path d="M2.5 4l2.5 2.5L7.5 4"/></svg>';
+
+function ovJSON(k, def) { try { return JSON.parse(store.get(k)) || def; } catch (_) { return def; } }
+function ovTabs() { return ovJSON("ovTabs", {}); }
+function ovFolded() { return new Set(ovJSON("ovFold", [])); }
+
+function listenOverview() {
+  if (OV.unsub) OV.unsub();
+  OV.unsub = FB.onSnapshot(FB.doc(FB_DB, "teams", S.teamId, "items", OV_DOC), snap => {
+    const url = snap.exists() ? String(snap.data().url || "") : "";
+    if (url !== OV.url) { OV.url = url; OV.err = ""; if (OV.open && url && !OV.data) ovLoad(); }
+    renderOv();
+  }, () => {});
+}
+function stopOverview() {
+  if (OV.unsub) { OV.unsub(); OV.unsub = null; }
+  OV.url = ""; OV.data = null; OV.at = 0; OV.err = ""; OV.openP.clear();
+  closeOverview();
+}
+
+function openOverview() {
+  if (!S.teamId) return;
+  if (!OV.data) {
+    const c = ovJSON("ovData." + S.teamId, null);
+    if (c && c.files) { OV.data = c; OV.at = c.at || 0; }
+  }
+  OV.open = true; ovp.classList.add("show"); $("#bOv").classList.add("on");
+  $("#bCfg").hidden = true; closeMembers();
+  renderOv();
+  if (OV.url && (!OV.data || Date.now() - OV.at > OV_STALE)) ovLoad();
+}
+function closeOverview() {
+  OV.open = false; ovp.classList.remove("show"); closeOvMenu();
+  const b = $("#bOv"); if (b) b.classList.remove("on");
+  if ($("#scroll").classList.contains("show")) $("#bCfg").hidden = false;
+}
+$("#bOv").onclick = () => OV.open ? closeOverview() : openOverview();
+$("#ovBack").onclick = closeOverview;
+$("#ovRef").onclick = () => ovLoad();
+$("#ovLink").onclick = () => dialog({
+  title: "Link Apps Script", text: "Link Web app (đuôi /exec) dùng chung cho cả team. Xoá trống để ngắt kết nối.",
+  input: { value: OV.url, placeholder: "https://script.google.com/macros/s/…/exec" },
+  buttons: [{ label: "Huỷ" }, { label: "Lưu", def: true, run: v => ovSetUrl(v, null) }],
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || !OV.open || veil.classList.contains("show")) return;
+  if (ovMenu.classList.contains("show")) closeOvMenu(); else closeOverview();
+});
+
+/* ---- dữ liệu ---- */
+function ovKind(s) {
+  s = String(s || "").toLowerCase().replace(/[\s_\-]/g, "");
+  if (s === "done") return "done";
+  if (s === "wip") return "wip";
+  if (s === "reject" || s === "rejected") return null;      // Reject: bỏ qua, không đếm
+  return "left";                                          // To-do, N/A, trống… = còn lại (đã assign)
+}
+function ovTaskName(id, desc) {
+  let line = String(desc || "").split(/\n/).map(x => x.trim()).find(Boolean) || "";
+  line = line.replace(/[:：]\s*$/, "");
+  if (line.length > 70) line = line.slice(0, 68).trim() + "…";
+  return (id ? "#" + id + " " : "") + (line || "(chưa có miêu tả)");
+}
+function ovSummary(f) {
+  const people = new Map(); let done = 0, total = 0;
+  for (const [a, st, id, d] of f.rows || []) {
+    const k = ovKind(st); if (!k) continue;
+    total++; if (k === "done") done++;
+    for (const name of String(a).split(/[,;\n]+/).map(x => x.trim()).filter(Boolean)) {
+      const key = name.toLowerCase();
+      let p = people.get(key);
+      if (!p) people.set(key, p = { key, name, wip: 0, done: 0, left: 0, tasks: [] });
+      p[k]++; p.tasks.push({ k, t: ovTaskName(id, d) });
+    }
+  }
+  const list = [...people.values()].sort((x, y) => x.name.localeCompare(y.name, "vi"));
+  list.forEach(p => p.tasks.sort((x, y) => OV_ORDER[x.k] - OV_ORDER[y.k]));
+  return { list, done, total };
+}
+function ovErrText(e) {
+  const m = String((e && e.message) || e || "");
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Không kết nối được. Kiểm tra mạng, hoặc link Apps Script chưa đúng.";
+  if (/JSON|Unexpected token|bad response/i.test(m)) return "Link chưa đúng, hoặc lúc Deploy chưa chọn \"Who has access: Anyone\".";
+  if (/not found|không tìm thấy|No item with the given ID/i.test(m)) return "Apps Script không mở được folder / file. Kiểm tra FOLDER_ID và quyền xem folder.";
+  return m || "Lỗi không rõ";
+}
+async function ovFetch(url, params) {
+  const u = new URL(url);
+  for (const [k, v] of Object.entries(params || {})) u.searchParams.set(k, v);
+  const r = await fetch(u.toString(), { redirect: "follow", cache: "no-store" });
+  const text = await r.text();
+  let j; try { j = JSON.parse(text); } catch (_) { throw new Error("bad response"); }
+  if (!j || !j.ok) throw new Error((j && j.error) || "Lỗi Apps Script");
+  return j;
+}
+function ovSave() {
+  if (!S.teamId || !OV.data) return;
+  store.set("ovData." + S.teamId, JSON.stringify(Object.assign({}, OV.data, { at: OV.at })));
+}
+async function ovLoad() {
+  if (!OV.url || OV.loading) return;
+  const team = S.teamId, url = OV.url;
+  OV.loading = true; OV.err = ""; renderOv();
+  try {
+    const j = await ovFetch(url, { tabs: JSON.stringify(ovTabs()) });
+    if (S.teamId !== team || OV.url !== url) return;
+    OV.data = { folder: j.folder || "", files: j.files || [] }; OV.at = Date.now(); ovSave();
+  } catch (e) { if (S.teamId === team) OV.err = ovErrText(e); }
+  finally { if (S.teamId === team) { OV.loading = false; renderOv(); } }
+}
+async function ovPickTab(fid, tab) {
+  closeOvMenu();
+  const f = OV.data && OV.data.files.find(x => x.id === fid); if (!f || f.tab === tab) return;
+  const tabs = ovTabs();
+  if (tab === f.tabs[0]) delete tabs[fid]; else tabs[fid] = tab;     // tab đầu tiên = mặc định, không cần nhớ
+  store.set("ovTabs", JSON.stringify(tabs));
+  OV.busy.add(fid); renderOv();
+  try {
+    const j = await ovFetch(OV.url, { file: fid, tab });
+    const i = OV.data.files.findIndex(x => x.id === fid);
+    if (i >= 0) OV.data.files[i] = j.file;
+    ovSave();
+  } catch (e) { toast(ovErrText(e)); }
+  OV.busy.delete(fid); renderOv();
+}
+async function ovSetUrl(v, errEl) {
+  v = String(v || "").trim();
+  const showErr = m => { if (errEl) errEl.textContent = m; else toast(m); };
+  if (v && !/^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[\w-]+\/exec\b/.test(v)) { showErr("Link phải có dạng https://script.google.com/macros/s/…/exec"); return; }
+  const ref = FB.doc(FB_DB, "teams", S.teamId, "items", OV_DOC);
+  try {
+    if (!v) { await FB.deleteDoc(ref); OV.data = null; store.set("ovData." + S.teamId, ""); toast("Đã ngắt kết nối Google Sheet"); return; }
+    if (errEl) errEl.textContent = "Đang kiểm tra link…";
+    const j = await ovFetch(v, { tabs: JSON.stringify(ovTabs()) });
+    OV.data = { folder: j.folder || "", files: j.files || [] }; OV.at = Date.now(); OV.err = ""; OV.url = v; ovSave();
+    await FB.setDoc(ref, { url: v, by: S.admin ? "Admin" : (S.name || ""), at: FB.serverTimestamp() });
+    toast("Đã kết nối · " + OV.data.files.length + " file");
+    renderOv();
+  } catch (e) { showErr(ovErrText(e)); }
+}
+
+/* ---- giao diện ---- */
+function ovEsc(t) { return escHtml(String(t == null ? "" : t)); }
+function renderOv() {
+  if (!OV.open) return;
+  const sub = $("#ovSub"), ref = $("#ovRef");
+  ref.classList.toggle("spin", OV.loading); ref.disabled = !OV.url || OV.loading;
+  $("#ovLink").hidden = !OV.url;
+  if (!OV.url) { sub.textContent = "Chưa kết nối Google Sheet"; ovBody.innerHTML = ovSetupHTML(); return; }
+  const files = (OV.data && OV.data.files) || [];
+  sub.textContent = !OV.data ? (OV.loading ? "Đang tải…" : "Chưa có dữ liệu")
+    : files.length + " file · " + (OV.loading ? "đang làm mới…" : "cập nhật " + ago(OV.at));
+  if (!OV.data) {
+    ovBody.innerHTML = OV.err ? `<div class="oempty">${ovEsc(OV.err)}<br><button class="bigbtn" data-ov="retry">Thử lại</button></div>`
+      : `<div class="oempty">Đang đọc các file sheet…<br><small>Lần đầu có thể mất 10–30 giây.</small></div>`;
+    return;
+  }
+  const fold = ovFolded();
+  let h = OV.err ? `<div class="obar">${ovEsc(OV.err)}</div>` : "";
+  if (!files.length) h += `<div class="oempty">Folder chưa có file Google Sheet nào.</div>`;
+  for (const f of files) {
+    const fid = ovEsc(f.id);
+    if (f.error) {
+      h += `<div class="of"><div class="ofh" data-ovf="${fid}">${ARR_SVG}<span class="osheet">${SHEET_SVG}</span><span class="nm">${ovEsc(f.name)}</span></div><div class="onote bad">Không đọc được: ${ovEsc(f.error)}</div></div>`;
+      continue;
+    }
+    const s = ovSummary(f), pct = s.total ? Math.round(s.done / s.total * 100) : 0;
+    const busy = OV.busy.has(f.id);
+    h += `<div class="of${fold.has(f.id) ? " fold" : ""}" data-fid="${fid}">
+      <div class="ofh" data-ovf="${fid}" title="Bấm để thu gọn / mở rộng">${ARR_SVG}<span class="osheet" data-ovopen="${fid}" title="Mở file sheet">${SHEET_SVG}</span><span class="nm">${ovEsc(f.name)}</span>
+        <button class="otab" data-ovtab="${fid}" title="Chọn tab"><span>${ovEsc(busy ? "Đang tải…" : f.tab)}</span>${CHEV_SVG}</button>
+        <span class="tot">${s.done}/${s.total} xong</span></div>
+      <div class="oprog"><i style="width:${pct}%"></i></div>
+      <div class="ofold"><div>`;
+    if (f.rows == null) h += `<div class="onote">Tab này không có cột "Assignee" và "Status".</div>`;
+    else if (!s.list.length) h += `<div class="onote">Chưa có task nào được assign.</div>`;
+    for (const p of s.list) {
+      const pk = f.id + "|" + p.key, open = OV.openP.has(pk);
+      h += `<div class="op${open ? " open" : ""}" data-ovp="${ovEsc(pk)}"><span class="av" style="background:${avColor(p.name)}">${ovEsc(p.name.charAt(0).toUpperCase())}</span><span class="pn" title="${ovEsc(p.name)}">${ovEsc(p.name)}</span>`
+        + (p.wip ? `<span class="pill wip" title="Đang làm (WIP)">Đang ${p.wip}</span>` : "")
+        + (p.done ? `<span class="pill done" title="Đã xong (Done)">Xong ${p.done}</span>` : "")
+        + (p.left ? `<span class="pill left" title="Còn lại (To-do, N/A)">Còn ${p.left}</span>` : "")
+        + `<span class="pill all" title="Tổng task (không tính Reject)">${p.wip + p.done + p.left}</span></div>`
+        + `<div class="otasks"><div>${p.tasks.map(t => `<div class="${t.k}" title="${ovEsc(t.t)}">${ovEsc(t.t)}</div>`).join("")}</div></div>`;
+    }
+    h += `</div></div></div>`;
+  }
+  ovBody.innerHTML = h;
+}
+function ovSetupHTML() {
+  return `<div class="ovset">
+    <h3>Kết nối Google Sheet</h3>
+    Làm 1 lần cho cả team, bởi người có quyền xem folder Drive:
+    <ol>
+      <li>Mở <a data-ovlink="https://script.google.com/home/projects/create">script.google.com</a> → dự án mới. Xoá hết code mẫu.</li>
+      <li>Bấm <b>Copy script</b> bên dưới rồi dán vào → bấm 💾 lưu.</li>
+      <li><b>Deploy → New deployment</b> → ⚙ chọn <b>Web app</b>. Execute as: <b>Me</b> · Who has access: <b>Anyone</b> → <b>Deploy</b> → cho phép quyền truy cập.</li>
+      <li>Copy <b>Web app URL</b> (đuôi <b>/exec</b>) dán vào ô dưới → <b>Kết nối</b>.</li>
+    </ol>
+    <div class="row2"><button class="ovbtn" data-ov="copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy script</button></div>
+    <input class="fin" id="ovUrl" spellcheck="false" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="err" id="ovErr"></div>
+    <button class="bigbtn" data-ov="save">Kết nối</button>
+  </div>`;
+}
+ovBody.addEventListener("click", e => {
+  const t = e.target;
+  const act = t.closest("[data-ov]");
+  if (act) {
+    const a = act.dataset.ov;
+    if (a === "retry") ovLoad();
+    else if (a === "copy") { copyText($("#gsCode").textContent.trim() + "\n"); toast("Đã copy script"); }
+    else if (a === "save") ovSetUrl($("#ovUrl").value, $("#ovErr"));
+    return;
+  }
+  const lk = t.closest("[data-ovlink]");
+  if (lk) { send("openLink", { url: lk.dataset.ovlink }); return; }
+  const op = t.closest("[data-ovopen]");
+  if (op) { const f = OV.data.files.find(x => x.id === op.dataset.ovopen); if (f && f.url) send("openLink", { url: f.url }); return; }
+  const tb = t.closest("[data-ovtab]");
+  if (tb) { openOvMenu(tb); return; }
+  const fh = t.closest("[data-ovf]");
+  if (fh) {
+    const box = fh.parentElement, id = fh.dataset.ovf, fold = ovFolded();
+    box.classList.toggle("fold");
+    box.classList.contains("fold") ? fold.add(id) : fold.delete(id);
+    store.set("ovFold", JSON.stringify([...fold]));
+    return;
+  }
+  const pp = t.closest("[data-ovp]");
+  if (pp) {
+    pp.classList.toggle("open");
+    pp.classList.contains("open") ? OV.openP.add(pp.dataset.ovp) : OV.openP.delete(pp.dataset.ovp);
+  }
+});
+ovBody.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "ovUrl") ovSetUrl(e.target.value, $("#ovErr")); });
+
+/* menu chọn tab */
+let ovMenuBtn = null;
+function openOvMenu(btn) {
+  if (ovMenuBtn === btn && ovMenu.classList.contains("show")) { closeOvMenu(); return; }
+  closeOvMenu();
+  const f = OV.data.files.find(x => x.id === btn.dataset.ovtab); if (!f || !f.tabs) return;
+  ovMenu.innerHTML = f.tabs.map((n, i) => `<button data-tab="${ovEsc(n)}" class="${n === f.tab ? "on" : ""}"><span>${ovEsc(n)}</span>${i === 0 ? "<small>mặc định</small>" : ""}</button>`).join("");
+  ovMenu.dataset.fid = f.id;
+  ovMenu.classList.add("show"); btn.classList.add("open"); ovMenuBtn = btn;
+  const r = btn.getBoundingClientRect(), mh = ovMenu.offsetHeight, mw = ovMenu.offsetWidth;
+  ovMenu.style.left = Math.max(6, Math.min(r.left, innerWidth - mw - 6)) + "px";
+  ovMenu.style.top = (r.bottom + 4 + mh > innerHeight - 6 ? Math.max(6, r.top - 4 - mh) : r.bottom + 4) + "px";
+}
+function closeOvMenu() {
+  ovMenu.classList.remove("show");
+  if (ovMenuBtn) ovMenuBtn.classList.remove("open");
+  ovMenuBtn = null;
+}
+ovMenu.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) ovPickTab(ovMenu.dataset.fid, b.dataset.tab); });
+document.addEventListener("mousedown", e => { if (ovMenu.classList.contains("show") && !e.target.closest("#ovMenu,[data-ovtab]")) closeOvMenu(); });
+ovBody.addEventListener("scroll", closeOvMenu);
+setInterval(() => { if (OV.open && OV.data && !OV.loading) $("#ovSub").textContent = OV.data.files.length + " file · cập nhật " + ago(OV.at); }, 30000);
+
 send("ready");
 if (window.FB) initFirebase();
 else { show("vJoin"); showJoinError("Không tải được thư viện đồng bộ"); }
+
 </script>
 </body>
 </html>
