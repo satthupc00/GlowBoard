@@ -49,7 +49,7 @@ Board ghi chú dạng widget nằm trên desktop Windows, chạy ở khay hệ t
 
 ## Overview – tổng quan task từ Google Sheet
 
-Nút **▦ Overview** ở thanh dưới cùng (cạnh ⚙) mở bảng tổng quan, đọc các file Google Sheet trong folder Drive của team.
+Nút **▦ Overview** ở thanh dưới cùng (cạnh ⚙) mở **cửa sổ Overview rời**: cửa sổ Windows bình thường, có nút phóng to / thu nhỏ, kéo giãn tuỳ ý, nhớ vị trí & kích thước. Cửa sổ rộng thì các file tự chia nhiều cột. Đọc các file Google Sheet trong folder Drive của team.
 
 - Mỗi file sheet = 1 mục lớn: tên file, ô chọn **tab** (mặc định tab ngoài cùng bên trái), số task đã xong / tổng và thanh tiến độ.
 - Dưới mỗi file là từng người (cột **Assignee**): **Đang** = WIP · **Xong** = Done · **Còn** = To-do, N/A, ô trống · số xám = tổng task. **Reject** không được đếm.

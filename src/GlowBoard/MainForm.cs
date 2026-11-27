@@ -368,7 +368,10 @@ namespace GlowBoard
         }
 
         // ================= WebView2 =================
-        private const string AppOrigin = "https://glowboard.app/";
+        internal const string AppOrigin = "https://glowboard.app/";
+        private CoreWebView2Environment _env;
+        private OverviewForm _ov;          // cửa sổ Overview rời (null khi đang đóng)
+        private string _ovData;            // dữ liệu Overview mới nhất từ board, gửi lại khi mở cửa sổ
 
         protected override async void OnLoad(EventArgs e)
         {
@@ -393,21 +396,29 @@ namespace GlowBoard
                 _quitting = true; Close(); return;
             }
 
+            _env = env;
             var core = _web.CoreWebView2;
+            SetupCore(core, env, OpenLink);
+            core.WebMessageReceived += OnWebMessage;
+            core.NavigationCompleted += (s, a) => _pageLoaded = true;
+            core.Navigate(AppOrigin + "index.html");
+        }
+
+        /// <summary>Cấu hình chung cho mọi WebView2 của app (board + Overview).</summary>
+        internal static void SetupCore(CoreWebView2 core, CoreWebView2Environment env, Action<string> openLink)
+        {
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.IsZoomControlEnabled = false;
             core.Settings.IsStatusBarEnabled = false;
             core.Settings.AreBrowserAcceleratorKeysEnabled = false;
             core.Settings.IsPinchZoomEnabled = false;
-            core.WebMessageReceived += OnWebMessage;
-            core.NewWindowRequested += (s, a) => { a.Handled = true; OpenLink(a.Uri); };
+            core.NewWindowRequested += (s, a) => { a.Handled = true; openLink(a.Uri); };
             core.NavigationStarting += (s, a) =>
             {
                 if (a.Uri.StartsWith(AppOrigin, StringComparison.OrdinalIgnoreCase)) return;
                 a.Cancel = true;          // không cho trang bị điều hướng đi chỗ khác
-                OpenLink(a.Uri);
+                openLink(a.Uri);
             };
-            core.NavigationCompleted += (s, a) => _pageLoaded = true;
 
             // Giao diện (index.html, fb.js) nằm sẵn trong exe, được phục vụ dưới địa chỉ https://glowboard.app/
             // để Firebase có "origin" riêng và lưu được đăng nhập + dữ liệu offline trên máy.
@@ -422,7 +433,6 @@ namespace GlowBoard
                     : env.CreateWebResourceResponse(new MemoryStream(data), 200, "OK",
                         "Content-Type: " + (path.EndsWith(".js") ? "text/javascript" : "text/html") + "; charset=utf-8\r\nCache-Control: no-store");
             };
-            core.Navigate(AppOrigin + "index.html");
         }
 
         private static byte[] ReadResource(string path)
@@ -466,12 +476,29 @@ namespace GlowBoard
                     break;
                 case "toggleTop": SetOnTop(!_onTop); break;
                 case "openLink": OpenLink(Str("url")); break;
+                case "ovOpen": OpenOverview(); break;
+                case "ovData":
+                    _ovData = e.TryGetWebMessageAsString();
+                    _ov?.PostRaw(_ovData);
+                    break;
                 case "drag":
                     NativeMethods.ReleaseCapture();
                     NativeMethods.SendMessage(Handle, NativeMethods.WM_NCLBUTTONDOWN, (IntPtr)NativeMethods.HTCAPTION, IntPtr.Zero);
                     SaveBounds();
                     break;
             }
+        }
+
+        private void OpenOverview()
+        {
+            if (_env == null) return;
+            if (_ov == null || _ov.IsDisposed)
+            {
+                _ov = new OverviewForm(_env, _settings, LoadAppIcon(new Size(Scale(32), Scale(32))), () => _ovData, OpenLink);
+                _ov.FormClosed += (s, a) => { _ov = null; Post(new { type = "ovState", open = false }); };
+                Post(new { type = "ovState", open = true });
+            }
+            _ov.BringUp();
         }
 
         /// <summary>Board cá nhân của các bản trước (file .gboard trên máy) – để Admin nhập vào board team.</summary>

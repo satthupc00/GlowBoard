@@ -23,6 +23,7 @@ namespace GlowBoard
         public const int GWLP_HWNDPARENT = -8;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
         public const int WS_EX_APPWINDOW = 0x00040000;
+        public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20, DWMWA_CAPTION_COLOR = 35;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct WINDOWPOS

@@ -440,6 +440,14 @@
   .ovmenu button span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ovmenu button small{color:var(--mute);font-size:10.5px;flex:none}
   .foot .ib.ov.on{color:#fff;background:rgba(229,56,59,.16);box-shadow:0 0 0 1.5px var(--red)}
+  .ovfoot{display:none}
+  .ovmode #app>*:not(.canvas),.ovmode .canvas>*:not(#ovp){display:none !important}
+  .ovmode #ovp{transition:none}
+  .ovmode .ovb{padding:10px 14px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:2px 28px;align-content:start}
+  .ovmode .ovb>.obar,.ovmode .ovb>.oempty,.ovmode .ovb>.ovset{grid-column:1/-1}
+  .ovmode .ovset{max-width:640px}
+  .ovmode .ovh{padding-left:14px}
+  .ovmode .ovfoot{display:flex;justify-content:flex-end;padding:6px 14px;background:var(--chrome);border-top:1px solid var(--line);flex:none}
   @media (prefers-reduced-motion: reduce){.ovp,.ofold,.otasks,.oprog i,.ofh .arr{transition:none}.ovbtn.spin svg{animation:none}}
 </style>
 </head>
@@ -505,6 +513,7 @@
         <button class="ib icon" id="ovSet" title="Kết nối Google Sheet (cài script / đổi folder)"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></button>
       </div>
       <div class="ovb" id="ovBody"></div>
+      <div class="ovfoot"><span class="credit">Created by Mondiro</span></div>
     </section>
   </main>
   <div class="ovmenu" id="ovMenu"></div>
@@ -1359,6 +1368,7 @@ document.addEventListener("dragover", e => e.preventDefault());
 
 /* ================= Tin nhắn từ app Windows ================= */
 function onHost(msg) {
+  if (msg.type === "ovState" || msg.type === "ovData") { ovHostMsg(msg); return; }
   switch (msg.type) {
     case "flush": if (saveTimer) flush(); break;
     case "admin": showLoginOrAdmin(); break;
@@ -2133,7 +2143,8 @@ function copyText(t) {
    (không có "order" nên không lẫn vào danh sách đầu mục). App chỉ việc lắng nghe. */
 const OV_DEFAULT_FOLDER = "1qU8jVJETb_pg5C2hocS3Hd2s4_jNf0ZG";
 const OV_STALE = 30 * 60 * 1000;                        // script gửi tín hiệu mỗi 15 phút; quá 30 phút = có thể đã dừng
-const OV = { index: null, files: {}, open: false, setup: false, openP: new Set(), unsub: null, fileUnsubs: {} };
+const OV_MODE = new URLSearchParams(location.search).has("ov");   // trang này là cửa sổ Overview rời
+const OV = { index: null, files: {}, open: false, win: false, setup: false, openP: new Set(), unsub: null, fileUnsubs: {} };
 const ovp = $("#ovp"), ovBody = $("#ovBody"), ovMenu = $("#ovMenu");
 const OV_ORDER = { wip: 0, left: 1, done: 2 };
 const SHEET_SVG = '<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2.5" fill="#1FA463"/><path d="M8 9h8M8 13h8M8 17h8M12 9v8" stroke="#fff" stroke-width="1.6" fill="none"/></svg>';
@@ -2151,7 +2162,7 @@ function listenOverview() {
   OV.unsub = FB.onSnapshot(ovItemRef("_ovIndex"), snap => {
     OV.index = ovParse(snap);
     syncFileListeners();
-    renderOv();
+    ovChanged();
   }, () => {});
 }
 // lắng nghe từng file trong danh sách (thêm / bỏ theo index)
@@ -2159,33 +2170,62 @@ function syncFileListeners() {
   const want = new Set(((OV.index && OV.index.files) || []).map(f => f.id));
   for (const id of Object.keys(OV.fileUnsubs)) if (!want.has(id)) { OV.fileUnsubs[id](); delete OV.fileUnsubs[id]; delete OV.files[id]; }
   for (const id of want) if (!OV.fileUnsubs[id]) {
-    OV.fileUnsubs[id] = FB.onSnapshot(ovItemRef("_ov_" + id), snap => { OV.files[id] = ovParse(snap); renderOv(); }, () => {});
+    OV.fileUnsubs[id] = FB.onSnapshot(ovItemRef("_ov_" + id), snap => { OV.files[id] = ovParse(snap); ovChanged(); }, () => {});
   }
 }
 function stopOverview() {
   if (OV.unsub) { OV.unsub(); OV.unsub = null; }
   for (const u of Object.values(OV.fileUnsubs)) u();
   OV.fileUnsubs = {}; OV.files = {}; OV.index = null; OV.openP.clear(); OV.setup = false;
-  closeOverview();
+  closeOverview(); ovPush();
 }
+function ovChanged() { renderOv(); ovPush(); }
+// gửi dữ liệu sang cửa sổ Overview rời (host chuyển tiếp; host nhớ bản mới nhất để gửi khi cửa sổ vừa mở)
+let ovPushT = 0;
+function ovPush() {
+  if (OV_MODE || !host) return;
+  clearTimeout(ovPushT);
+  ovPushT = setTimeout(() => send("ovData", { data: {
+    teamId: S.teamId || null, teamCode: S.teamCode || "", teamName: S.teamName || "",
+    index: OV.index, files: OV.files } }), 150);
+}
+function ovFootState() { const b = $("#bOv"); if (b) b.classList.toggle("on", OV.open || OV.win); }
 
 function openOverview() {
   if (!S.teamId) return;
-  OV.open = true; ovp.classList.add("show"); $("#bOv").classList.add("on");
+  OV.open = true; ovp.classList.add("show"); ovFootState();
   $("#bCfg").hidden = true; closeMembers();
   renderOv();
 }
 function closeOverview() {
   OV.open = false; ovp.classList.remove("show"); closeOvMenu();
-  const b = $("#bOv"); if (b) b.classList.remove("on");
+  ovFootState();
   if ($("#scroll").classList.contains("show")) $("#bCfg").hidden = false;
 }
-$("#bOv").onclick = () => OV.open ? closeOverview() : openOverview();
+// trong app: mở cửa sổ Overview rời; xem thử trên trình duyệt: mở ngay trong board
+$("#bOv").onclick = () => { if (host) { ovPush(); send("ovOpen"); } else OV.open ? closeOverview() : openOverview(); };
+function ovHostMsg(msg) {
+  if (msg.type === "ovState") { OV.win = !!msg.open; ovFootState(); if (OV.win) ovPush(); return; }
+  if (msg.type === "ovData" && OV_MODE) {
+    const d = msg.data || {};
+    if ((d.teamId || null) !== S.teamId) OV.openP.clear();
+    S.teamId = d.teamId || null; S.teamCode = d.teamCode || ""; S.teamName = d.teamName || "";
+    OV.index = d.index || null; OV.files = d.files || {};
+    renderOv();
+  }
+}
+function ovModeInit() {
+  document.documentElement.classList.add("ovmode");
+  OV.open = true; ovp.classList.add("show");
+  renderOv();
+  send("ovReady");
+}
+if (OV_MODE) $("#ovBack").hidden = true;
 $("#ovBack").onclick = () => { if (OV.setup && OV.index) { OV.setup = false; renderOv(); } else closeOverview(); };
 $("#ovSet").onclick = () => { OV.setup = !OV.setup; renderOv(); };
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape" || !OV.open || veil.classList.contains("show")) return;
-  if (ovMenu.classList.contains("show")) closeOvMenu(); else closeOverview();
+  if (ovMenu.classList.contains("show")) closeOvMenu(); else if (!OV_MODE) closeOverview();
 });
 
 /* ---- dữ liệu ---- */
@@ -2249,6 +2289,12 @@ function renderOv() {
   if (!OV.open) return;
   const sub = $("#ovSub"), ix = OV.index;
   $("#ovSet").classList.toggle("on", OV.setup);
+  $("#ovSet").hidden = !S.teamId;
+  if (!S.teamId) {
+    sub.textContent = "Chưa vào team";
+    ovBody.innerHTML = `<div class="oempty">Mở board của team trên GlowBoard để xem Overview.</div>`;
+    return;
+  }
   if (!ix || OV.setup) {
     sub.textContent = ix ? "Cài lại / đổi folder" : "Chưa kết nối Google Sheet";
     if (!ovBody.querySelector(".ovset")) ovBody.innerHTML = ovSetupHTML();
@@ -2364,7 +2410,8 @@ ovBody.addEventListener("scroll", closeOvMenu);
 setInterval(() => { if (OV.open && OV.index && !OV.setup) renderOv(); }, 60000);
 
 send("ready");
-if (window.FB) initFirebase();
+if (OV_MODE) ovModeInit();
+else if (window.FB) initFirebase();
 else { show("vJoin"); showJoinError("Không tải được thư viện đồng bộ"); }
 
 </script>
