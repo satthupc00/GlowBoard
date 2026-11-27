@@ -264,23 +264,33 @@ namespace GlowBoard
         {
             if (_checking) return;
             _checking = true;
+            if (manual) PostUpd("checking");
             try
             {
                 var v = await _updater.CheckAndStageAsync();
                 if (v == null)
                 {
+                    PostUpd("latest");
                     if (manual) _tray.ShowBalloonTip(3000, AppTitle, "Bạn đang dùng bản mới nhất (v" + Updater.CurrentVersion + ").", ToolTipIcon.Info);
                     return;
                 }
                 _updateTimer.Interval = 30 * 1000;   // đã tải xong, đợi lúc thích hợp để cài
                 _updateTimer.Start();
+                PostUpd(manual ? "installing" : "new", v.ToString());
                 if (manual) await TryApplyUpdateAsync(true);
             }
             catch (Exception ex)
             {
+                PostUpd("error", null, ex.Message);
                 if (manual) _tray.ShowBalloonTip(4000, AppTitle, "Không kiểm tra được cập nhật: " + ex.Message, ToolTipIcon.Warning);
             }
             finally { _checking = false; }
+        }
+
+        /// <summary>Báo trạng thái cập nhật cho nút ⟳ trên giao diện.</summary>
+        private void PostUpd(string state, string next = null, string error = null)
+        {
+            try { Post(new { type = "upd", state, current = Updater.CurrentVersion.ToString(), next, error }); } catch { }
         }
 
         /// <summary>Cài bản mới khi board đang ẩn hoặc bạn không thao tác trên board (hoặc ngay lập tức nếu bạn bấm Kiểm tra cập nhật).</summary>
@@ -465,6 +475,7 @@ namespace GlowBoard
             {
                 case "ready":
                     Post(new { type = "onTop", on = _onTop });
+                    PostUpd(_updater.StagedVersion != null ? "new" : "idle", _updater.StagedVersion?.ToString());
                     if (_justUpdated) Post(new { type = "toast", message = "Đã cập nhật GlowBoard lên v" + Updater.CurrentVersion });
                     break;
                 case "getLegacy": Post(new { type = "legacy", text = ReadLegacyBoard() }); break;
@@ -477,6 +488,7 @@ namespace GlowBoard
                 case "toggleTop": SetOnTop(!_onTop); break;
                 case "openLink": OpenLink(Str("url")); break;
                 case "ovOpen": OpenOverview(); break;
+                case "checkUpdate": _ = CheckUpdateAsync(true); break;
                 case "ovData":
                     _ovData = e.TryGetWebMessageAsString();
                     _ov?.PostRaw(_ovData);
@@ -494,11 +506,17 @@ namespace GlowBoard
             if (_env == null) return;
             if (_ov == null || _ov.IsDisposed)
             {
-                _ov = new OverviewForm(_env, _settings, LoadAppIcon(new Size(Scale(32), Scale(32))), () => _ovData, OpenLink);
+                _ov = new OverviewForm(_env, _settings, LoadAppIcon(new Size(Scale(32), Scale(32))), () => _ovData, OpenLink, ForwardFromOverview);
                 _ov.FormClosed += (s, a) => { _ov = null; Post(new { type = "ovState", open = false }); };
                 Post(new { type = "ovState", open = true });
             }
             _ov.BringUp();
+        }
+
+        /// <summary>Cửa sổ Overview không có kết nối riêng: thay đổi (thứ tự, Active/Close) chuyển về board để ghi.</summary>
+        private void ForwardFromOverview(string raw)
+        {
+            if (_web.CoreWebView2 != null) _web.CoreWebView2.PostWebMessageAsString(raw);
         }
 
         /// <summary>Board cá nhân của các bản trước (file .gboard trên máy) – để Admin nhập vào board team.</summary>

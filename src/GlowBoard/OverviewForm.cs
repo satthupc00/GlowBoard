@@ -20,12 +20,13 @@ namespace GlowBoard
         private readonly CoreWebView2Environment _env;
         private readonly Func<string> _lastData;
         private readonly Action<string> _openLink;
+        private readonly Action<string> _toBoard;
         private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
         private bool _ready;
 
-        public OverviewForm(CoreWebView2Environment env, Settings settings, Icon icon, Func<string> lastData, Action<string> openLink)
+        public OverviewForm(CoreWebView2Environment env, Settings settings, Icon icon, Func<string> lastData, Action<string> openLink, Action<string> toBoard)
         {
-            _env = env; _settings = settings; _lastData = lastData; _openLink = openLink;
+            _env = env; _settings = settings; _lastData = lastData; _openLink = openLink; _toBoard = toBoard;
             Text = "Mondiro GlowBoard – Overview";
             Icon = icon;
             StartPosition = FormStartPosition.Manual;
@@ -104,6 +105,8 @@ namespace GlowBoard
                     if (d != null) PostRaw(d);
                     break;
                 case "openLink": _openLink(Str("url")); break;
+                case "ovMeta":
+                case "ovRefresh": _toBoard(e.TryGetWebMessageAsString()); break;   // board ghi lên Firebase
             }
         }
 

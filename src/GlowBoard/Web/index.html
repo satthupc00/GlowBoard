@@ -440,8 +440,25 @@
   .ovmenu button span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ovmenu button small{color:var(--mute);font-size:10.5px;flex:none}
   .foot .ib.ov.on{color:#fff;background:rgba(229,56,59,.16);box-shadow:0 0 0 1.5px var(--red)}
+  .foot .ib.upd.spin svg{animation:ovSpin .9s linear infinite}
+  .foot .ib.upd.latest{color:#3DDC8A}
+  .foot .ib.upd.new{color:#3DDC8A;animation:updPulse 1.4s ease-in-out infinite}
+  .foot .ib.upd.err{color:var(--red)}
+  @keyframes updPulse{50%{background:rgba(61,220,138,.2)}}
+  .ost{flex:none;display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:5px;border:1px solid rgba(57,255,122,.35);background:rgba(57,255,122,.08);font-size:11px;font-weight:600;color:var(--neon)}
+  .ost svg{width:9px;height:9px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;opacity:.7}
+  .ost:hover,.ost.open{border-color:var(--red)}
+  .ost.closed{color:#9aa0aa;border-color:#4a4e57;background:#33363c}
+  .of.closed .ofh{opacity:.75}
+  .of.closed .nm{color:#7d828c}
+  .of.closed .osheet{filter:grayscale(1);opacity:.6}
+  .of.closed .arr{width:12px;flex:none}
+  .of{position:relative;border-radius:8px}
+  .of.ovlift{z-index:5;background:#30343c;box-shadow:0 10px 24px rgba(0,0,0,.45),inset 3px 0 0 var(--red)}
+  .ovdragging,.ovdragging *{cursor:grabbing !important}
+  .ofh{touch-action:none}
   .ovfoot{display:none}
-  .ovmode #app>*:not(.canvas),.ovmode .canvas>*:not(#ovp){display:none !important}
+  .ovmode #app>*:not(.canvas):not(.ovmenu),.ovmode .canvas>*:not(#ovp){display:none !important}
   .ovmode #ovp{transition:none}
   .ovmode .ovb{padding:10px 14px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:2px 28px;align-content:start}
   .ovmode .ovb>.obar,.ovmode .ovb>.oempty,.ovmode .ovb>.ovset{grid-column:1/-1}
@@ -510,6 +527,7 @@
       <div class="ovh">
         <button class="ib icon" id="ovBack" title="Đóng Overview (Esc)"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
         <div class="ovt"><b>Overview</b><div class="sub" id="ovSub"></div></div>
+        <button class="ovbtn" id="ovRef" title="Đọc lại tất cả file sheet ngay (script chạy mỗi phút)" hidden><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Refresh</button>
         <button class="ib icon" id="ovSet" title="Kết nối Google Sheet (cài script / đổi folder)"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></button>
       </div>
       <div class="ovb" id="ovBody"></div>
@@ -551,6 +569,10 @@ function sync() {
     const seen = JSON.parse(props.getProperty('seen') || '{}');
     const auth = fbAuth();
     ensureMember(auth, props);
+    // Nút refresh trên GlowBoard: đọc lại toàn bộ file, không đợi Drive báo file đã sửa
+    const req = fsGetTime(auth, '_ovReq');
+    const force = req > Number(props.getProperty('reqAt') || 0);
+    if (force) props.setProperty('reqAt', String(req));
     const folder = DriveApp.getFolderById(FOLDER_ID);
     const it = folder.getFilesByType(MimeType.GOOGLE_SHEETS);
     const files = [], now = {};
@@ -559,7 +581,7 @@ function sync() {
       const f = it.next(), id = f.getId(), up = f.getLastUpdated().getTime();
       files.push({ id: id, name: f.getName(), url: f.getUrl(), updated: up });
       now[id] = up;
-      if (seen[id] === up) continue;
+      if (!force && seen[id] === up) continue;
       let data;
       try { data = readAll(SpreadsheetApp.open(f)); }
       catch (err) { data = { error: String((err && err.message) || err) }; }
@@ -571,7 +593,7 @@ function sync() {
       if (!(id in now)) { fsDelete(auth, '_ov_' + id); delete seen[id]; changed = true; }
     });
     const last = Number(props.getProperty('indexAt') || 0);
-    if (changed || Date.now() - last > HEARTBEAT_MS) {
+    if (changed || force || Date.now() - last > HEARTBEAT_MS) {
       files.sort(function (a, b) { return a.name.localeCompare(b.name); });
       fsSet(auth, '_ovIndex', { folder: folder.getName(), files: files, bot: auth.uid, at: Date.now() });
       props.setProperty('indexAt', String(Date.now()));
@@ -679,6 +701,13 @@ function fsSet(auth, docId, data) {
     throw new Error('Gửi dữ liệu lỗi ' + res.getResponseCode() + ': ' + res.getContentText());
   }
 }
+function fsGetTime(auth, docId) {
+  const res = UrlFetchApp.fetch(docUrl('teams/' + TEAM_ID + '/items/' + docId), {
+    headers: { Authorization: 'Bearer ' + auth.idToken }, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return 0;
+  const f = JSON.parse(res.getContentText()).fields || {};
+  return f.at && f.at.timestampValue ? Date.parse(f.at.timestampValue) : 0;
+}
 function fsDelete(auth, docId) {
   UrlFetchApp.fetch(docUrl('teams/' + TEAM_ID + '/items/' + docId), {
     method: 'delete', headers: { Authorization: 'Bearer ' + auth.idToken }, muteHttpExceptions: true });
@@ -692,7 +721,8 @@ function fsDelete(auth, docId) {
   <button class="ib icon" id="bLogout" title="Thoát chế độ Admin" hidden><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg></button>
   <button class="ib icon ov" id="bOv" title="Overview – tổng quan task của team" hidden><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg></button>
     <button class="ib icon" id="bCfg" title="Config các nút link" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-  <button class="ib icon" id="bTop" title="Luôn nằm trên cùng: đang tắt"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3.5 3.5v1.5h-11v-1.5L10 9z"/><path d="M12 14v7"/></svg></button>
+  <button class="ib icon upd" id="bUpd" title="Kiểm tra cập nhật" aria-label="Kiểm tra cập nhật"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></button>
+    <button class="ib icon" id="bTop" title="Luôn nằm trên cùng: đang tắt"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3.5 3.5v1.5h-11v-1.5L10 9z"/><path d="M12 14v7"/></svg></button>
   <button class="ib icon" id="bHide" title="Thu xuống khay hệ thống"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
     </div>
     <span class="credit">Created by Mondiro</span>
@@ -1368,7 +1398,8 @@ document.addEventListener("dragover", e => e.preventDefault());
 
 /* ================= Tin nhắn từ app Windows ================= */
 function onHost(msg) {
-  if (msg.type === "ovState" || msg.type === "ovData") { ovHostMsg(msg); return; }
+  if (msg.type === "ovState" || msg.type === "ovData" || msg.type === "ovMeta" || msg.type === "ovRefresh") { ovHostMsg(msg); return; }
+  if (msg.type === "upd") { setUpd(msg); return; }
   switch (msg.type) {
     case "flush": if (saveTimer) flush(); break;
     case "admin": showLoginOrAdmin(); break;
@@ -2135,6 +2166,31 @@ function copyText(t) {
   if (navigator.clipboard) navigator.clipboard.writeText(t).catch(() => {});
 }
 
+/* ---------- nút kiểm tra cập nhật (⟳ cạnh ⚙) ---------- */
+const UPD = { state: "idle", current: "", next: "" };
+function setUpd(m) {
+  const prev = UPD.state;
+  UPD.state = m.state || "idle"; if (m.current) UPD.current = m.current; UPD.next = m.next || UPD.next;
+  const b = $("#bUpd"), st = UPD.state, v = UPD.current ? " (v" + UPD.current + ")" : "";
+  b.classList.toggle("spin", st === "checking" || st === "installing");
+  b.classList.toggle("latest", st === "latest");
+  b.classList.toggle("new", st === "new");
+  b.classList.toggle("err", st === "error");
+  b.title = st === "checking" ? "Đang kiểm tra cập nhật…"
+    : st === "installing" ? "Đang cài bản mới v" + UPD.next + "…"
+    : st === "new" ? "Có bản mới v" + UPD.next + " · bấm để cập nhật"
+    : st === "latest" ? "Kiểm tra cập nhật · Đã là bản mới nhất" + v
+    : st === "error" ? "Không kiểm tra được cập nhật: " + (m.error || "")
+    : "Kiểm tra cập nhật" + v;
+  if (prev === "checking" && st === "latest") toast("Đã là bản mới nhất" + v);
+  if (st === "installing") toast("Đang cài v" + UPD.next + ", app sẽ tự mở lại…");
+}
+$("#bUpd").onclick = () => {
+  if (UPD.state === "checking" || UPD.state === "installing") return;
+  if (host) send("checkUpdate");
+  else { setUpd({ state: "checking" }); setTimeout(() => setUpd({ state: "latest", current: "xem thử" }), 700); }
+};
+
 /* ================= Overview: tổng quan task từ các file Google Sheet =================
    Apps Script chạy ngầm bằng tài khoản Google của người cài (không cần Deploy / quyền "Anyone"):
    mỗi phút đọc các file vừa sửa trong folder Drive rồi ghi vào board của team:
@@ -2144,7 +2200,7 @@ function copyText(t) {
 const OV_DEFAULT_FOLDER = "1qU8jVJETb_pg5C2hocS3Hd2s4_jNf0ZG";
 const OV_STALE = 30 * 60 * 1000;                        // script gửi tín hiệu mỗi 15 phút; quá 30 phút = có thể đã dừng
 const OV_MODE = new URLSearchParams(location.search).has("ov");   // trang này là cửa sổ Overview rời
-const OV = { index: null, files: {}, open: false, win: false, setup: false, openP: new Set(), unsub: null, fileUnsubs: {} };
+const OV = { reqAt: 0, reqBase: 0, index: null, files: {}, meta: { order: [], closed: [] }, open: false, win: false, setup: false, openP: new Set(), unsub: null, fileUnsubs: {} };
 const ovp = $("#ovp"), ovBody = $("#ovBody"), ovMenu = $("#ovMenu");
 const OV_ORDER = { wip: 0, left: 1, done: 2 };
 const SHEET_SVG = '<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2.5" fill="#1FA463"/><path d="M8 9h8M8 13h8M8 17h8M12 9v8" stroke="#fff" stroke-width="1.6" fill="none"/></svg>';
@@ -2164,6 +2220,11 @@ function listenOverview() {
     syncFileListeners();
     ovChanged();
   }, () => {});
+  OV.unsubMeta = FB.onSnapshot(ovItemRef("_ovMeta"), snap => {
+    const d = snap.exists() ? snap.data() : {};
+    OV.meta = { order: Array.isArray(d.order) ? d.order : [], closed: Array.isArray(d.closed) ? d.closed : [] };
+    ovChanged();
+  }, () => {});
 }
 // lắng nghe từng file trong danh sách (thêm / bỏ theo index)
 function syncFileListeners() {
@@ -2175,11 +2236,53 @@ function syncFileListeners() {
 }
 function stopOverview() {
   if (OV.unsub) { OV.unsub(); OV.unsub = null; }
+  if (OV.unsubMeta) { OV.unsubMeta(); OV.unsubMeta = null; }
+  OV.meta = { order: [], closed: [] };
   for (const u of Object.values(OV.fileUnsubs)) u();
   OV.fileUnsubs = {}; OV.files = {}; OV.index = null; OV.openP.clear(); OV.setup = false;
   closeOverview(); ovPush();
 }
 function ovChanged() { renderOv(); ovPush(); }
+// thứ tự ưu tiên & trạng thái Close: chung cho cả team
+function ovSaveMeta(meta) {
+  OV.meta = meta; renderOv();
+  if (OV_MODE) send("ovMeta", meta); else ovWriteMeta(meta);
+}
+function ovWriteMeta(m) {
+  if (!S.teamId) return;
+  const order = (m.order || []).map(String).slice(0, 500), closed = (m.closed || []).map(String).slice(0, 500);
+  OV.meta = { order, closed }; ovChanged();
+  FB.setDoc(ovItemRef("_ovMeta"), { order, closed, by: S.admin ? "Admin" : (S.name || ""), at: FB.serverTimestamp() }).catch(err => toast(errText(err)));
+}
+// Refresh: ghi yêu cầu vào items/_ovReq; lần chạy kế tiếp (≤ 1 phút) script đọc lại toàn bộ file
+const OV_REQ_WAIT = 3 * 60 * 1000;
+function ovRefresh() {
+  if (ovWaiting()) return;
+  OV.reqAt = Date.now(); renderOv();
+  if (OV_MODE) send("ovRefresh"); else ovWriteReq();
+  setTimeout(() => {
+    if (OV.reqAt && ovIndexAt() < OV.reqAt - 60000) { OV.reqAt = 0; renderOv(); toast("Script chưa phản hồi. Hãy copy script mới (nút <>), dán đè rồi chạy lại setup."); }
+  }, OV_REQ_WAIT);
+}
+function ovWriteReq() {
+  if (!S.teamId) return;
+  FB.setDoc(ovItemRef("_ovReq"), { at: FB.serverTimestamp(), by: S.admin ? "Admin" : (S.name || "") }).catch(err => toast(errText(err)));
+}
+function ovIndexAt() { return (OV.index && OV.index.at) || 0; }
+// đang chờ script: index chưa được ghi lại sau lúc bấm (cho lệch giờ máy ~1 phút)
+function ovWaiting() {
+  if (!OV.reqAt) return false;
+  if (ovIndexAt() >= OV.reqAt - 60000 && ovIndexAt() > OV.reqBase) { OV.reqAt = 0; toast("Đã đồng bộ dữ liệu mới nhất"); return false; }
+  return Date.now() - OV.reqAt < OV_REQ_WAIT;
+}
+$("#ovRef").onclick = () => { OV.reqBase = ovIndexAt(); ovRefresh(); };
+function ovSorted(files) {
+  const pos = new Map((OV.meta.order || []).map((id, i) => [id, i]));
+  return files.slice().sort((a, b) => {
+    const pa = pos.has(a.id) ? pos.get(a.id) : 1e6, pb = pos.has(b.id) ? pos.get(b.id) : 1e6;
+    return pa - pb || String(a.name).localeCompare(String(b.name));
+  });
+}
 // gửi dữ liệu sang cửa sổ Overview rời (host chuyển tiếp; host nhớ bản mới nhất để gửi khi cửa sổ vừa mở)
 let ovPushT = 0;
 function ovPush() {
@@ -2187,7 +2290,7 @@ function ovPush() {
   clearTimeout(ovPushT);
   ovPushT = setTimeout(() => send("ovData", { data: {
     teamId: S.teamId || null, teamCode: S.teamCode || "", teamName: S.teamName || "",
-    index: OV.index, files: OV.files } }), 150);
+    index: OV.index, files: OV.files, meta: OV.meta } }), 150);
 }
 function ovFootState() { const b = $("#bOv"); if (b) b.classList.toggle("on", OV.open || OV.win); }
 
@@ -2210,9 +2313,11 @@ function ovHostMsg(msg) {
     const d = msg.data || {};
     if ((d.teamId || null) !== S.teamId) OV.openP.clear();
     S.teamId = d.teamId || null; S.teamCode = d.teamCode || ""; S.teamName = d.teamName || "";
-    OV.index = d.index || null; OV.files = d.files || {};
+    OV.index = d.index || null; OV.files = d.files || {}; OV.meta = d.meta || { order: [], closed: [] };
     renderOv();
   }
+  if (msg.type === "ovMeta" && !OV_MODE) ovWriteMeta(msg);       // cửa sổ rời nhờ board ghi
+  if (msg.type === "ovRefresh" && !OV_MODE) ovWriteReq();
 }
 function ovModeInit() {
   document.documentElement.classList.add("ovmode");
@@ -2231,10 +2336,11 @@ document.addEventListener("keydown", e => {
 /* ---- dữ liệu ---- */
 function ovKind(s) {
   s = String(s || "").toLowerCase().replace(/[\s_\-]/g, "");
+  if (!s || s === "status") return null;                   // ô Status trống / dòng tiêu đề lặp lại: không đếm
   if (s === "done") return "done";
   if (s === "wip") return "wip";
   if (s === "reject" || s === "rejected") return null;      // Reject: bỏ qua, không đếm
-  return "left";                                          // To-do, N/A, trống… = còn lại (đã assign)
+  return "left";                                          // To-do, N/A… = còn lại (đã assign)
 }
 function ovTaskName(id, desc) {
   let line = String(desc || "").split(/\n/).map(x => x.trim()).find(Boolean) || "";
@@ -2245,7 +2351,7 @@ function ovTaskName(id, desc) {
 function ovSummary(rows) {
   const people = new Map(); let done = 0, total = 0;
   for (const [a, st, id, d] of rows || []) {
-    const k = ovKind(st); if (!k) continue;
+    const k = ovKind(st); if (!k || /^assign/i.test(String(a).trim())) continue;
     total++; if (k === "done") done++;
     for (const name of String(a).split(/[,;\n]+/).map(x => x.trim()).filter(Boolean)) {
       const key = name.toLowerCase();
@@ -2290,6 +2396,7 @@ function renderOv() {
   const sub = $("#ovSub"), ix = OV.index;
   $("#ovSet").classList.toggle("on", OV.setup);
   $("#ovSet").hidden = !S.teamId;
+  $("#ovRef").hidden = !S.teamId || !OV.index || OV.setup;
   if (!S.teamId) {
     sub.textContent = "Chưa vào team";
     ovBody.innerHTML = `<div class="oempty">Mở board của team trên GlowBoard để xem Overview.</div>`;
@@ -2302,18 +2409,24 @@ function renderOv() {
   }
   const files = ix.files || [];
   const last = Math.max(ix.at || 0, ...files.map(f => (OV.files[f.id] && OV.files[f.id].at) || 0));
-  sub.textContent = files.length + " file · cập nhật " + ago(last);
+  const waiting = ovWaiting();
+  $("#ovRef").classList.toggle("spin", waiting); $("#ovRef").disabled = waiting;
+  sub.textContent = files.length + " file · " + (waiting ? "đang chờ script đọc lại (tối đa ~1 phút)…" : "cập nhật " + ago(last));
   const fold = ovFolded();
   let h = Date.now() - (ix.at || 0) > OV_STALE
-    ? `<div class="obar">Script trên Google chưa gửi dữ liệu từ ${ovEsc(ago(ix.at || 0))}. Có thể máy người cài đã tắt quyền, mã team đã đổi hoặc trigger đã bị xoá → bấm ⚙ để cài lại.</div>` : "";
+    ? `<div class="obar">Script trên Google chưa gửi dữ liệu từ ${ovEsc(ago(ix.at || 0))}. Có thể người cài đã tắt quyền, mã team đã đổi hoặc trigger đã bị xoá → bấm &lt;&gt; để cài lại.</div>` : "";
   if (!files.length) h += `<div class="oempty">Folder${ix.folder ? " “" + ovEsc(ix.folder) + "”" : ""} chưa có file Google Sheet nào.</div>`;
-  for (const meta of files) {
-    const fd = OV.files[meta.id], fid = ovEsc(meta.id);
-    const head = (extra) => `<div class="ofh" data-ovf="${fid}" title="Bấm để thu gọn / mở rộng">${ARR_SVG}<span class="osheet" data-ovopen="${fid}" title="Mở file sheet">${SHEET_SVG}</span><span class="nm">${ovEsc(meta.name)}</span>${extra || ""}</div>`;
-    if (!fd) { h += `<div class="of">${head()}<div class="onote">Đang tải…</div></div>`; continue; }
-    if (fd.error) { h += `<div class="of">${head()}<div class="onote bad">Không đọc được: ${ovEsc(fd.error)}</div></div>`; continue; }
+  if (ovDrag && ovDrag.started) { ovDrag.pending = true; return; }   // đang kéo: vẽ lại sau khi thả
+  const closedSet = new Set(OV.meta.closed || []);
+  for (const meta of ovSorted(files)) {
+    const fd = OV.files[meta.id], fid = ovEsc(meta.id), closed = closedSet.has(meta.id);
+    const stBtn = `<button class="ost${closed ? " closed" : ""}" data-ovst="${fid}" title="Trạng thái dự án">${closed ? "Close" : "Active"}${CHEV_SVG}</button>`;
+    if (closed) { h += `<div class="of closed" data-fid="${fid}"><div class="ofh" data-ovf="${fid}" title="Giữ & kéo để đổi thứ tự ưu tiên"><span class="arr"></span><span class="osheet" data-ovopen="${fid}" title="Mở file sheet">${SHEET_SVG}</span><span class="nm">${ovEsc(meta.name)}</span>${stBtn}</div></div>`; continue; }
+    const head = (extra) => `<div class="ofh" data-ovf="${fid}" title="Bấm: thu gọn / mở rộng · Giữ & kéo: đổi thứ tự ưu tiên">${ARR_SVG}<span class="osheet" data-ovopen="${fid}" title="Mở file sheet">${SHEET_SVG}</span><span class="nm">${ovEsc(meta.name)}</span>${stBtn}${extra || ""}</div>`;
+    if (!fd) { h += `<div class="of" data-fid="${fid}">${head()}<div class="onote">Đang tải…</div></div>`; continue; }
+    if (fd.error) { h += `<div class="of" data-fid="${fid}">${head()}<div class="onote bad">Không đọc được: ${ovEsc(fd.error)}</div></div>`; continue; }
     const tab = ovCurTab(fd), s = ovSummary(tab && tab.rows), pct = s.total ? Math.round(s.done / s.total * 100) : 0;
-    h += `<div class="of${fold.has(meta.id) ? " fold" : ""}">
+    h += `<div class="of${fold.has(meta.id) ? " fold" : ""}" data-fid="${fid}">
       ${head(`<button class="otab" data-ovtab="${fid}" title="Chọn tab"><span>${ovEsc(tab ? tab.n : "—")}</span>${CHEV_SVG}</button><span class="tot">${s.done}/${s.total} xong</span>`)}
       <div class="oprog"><i style="width:${pct}%"></i></div>
       <div class="ofold"><div>`;
@@ -2331,8 +2444,14 @@ function renderOv() {
     }
     h += `</div></div></div>`;
   }
-  closeOvMenu();
+  // dữ liệu mới đến khi menu đang mở: vẽ lại rồi gắn menu vào nút mới thay vì đóng
+  const keep = ovMenu.classList.contains("show") && ovMenuBtn
+    ? (ovMenuBtn.dataset.ovst ? '[data-ovst="' + ovMenuBtn.dataset.ovst + '"]' : '[data-ovtab="' + ovMenuBtn.dataset.ovtab + '"]') : null;
   ovBody.innerHTML = h;
+  if (keep) {
+    const nb = ovBody.querySelector(keep);
+    if (nb) { ovMenuBtn = nb; nb.classList.add("open"); } else closeOvMenu();
+  }
 }
 function ovSetupHTML() {
   const folder = store.get("ovFolder") || "https://drive.google.com/drive/folders/" + OV_DEFAULT_FOLDER;
@@ -2353,7 +2472,10 @@ function ovSetupHTML() {
   </div>`;
 }
 ovBody.addEventListener("click", e => {
+  if (ovJustDragged) return;
   const t = e.target;
+  const sb = t.closest("[data-ovst]");
+  if (sb) { openOvMenu(sb); return; }
   const act = t.closest("[data-ov]");
   if (act) {
     if (act.dataset.ov === "copy") {
@@ -2390,10 +2512,16 @@ let ovMenuBtn = null;
 function openOvMenu(btn) {
   if (ovMenuBtn === btn && ovMenu.classList.contains("show")) { closeOvMenu(); return; }
   closeOvMenu();
-  const fd = OV.files[btn.dataset.ovtab]; if (!fd || !fd.tabs || !fd.tabs.length) return;
-  const cur = ovCurTab(fd);
-  ovMenu.innerHTML = fd.tabs.map((t, i) => `<button data-tab="${ovEsc(t.n)}" class="${t === cur ? "on" : ""}"><span>${ovEsc(t.n)}</span>${i === 0 ? "<small>mặc định</small>" : ""}</button>`).join("");
-  ovMenu.dataset.fid = fd.id;
+  if (btn.dataset.ovst) {
+    const id = btn.dataset.ovst, closed = (OV.meta.closed || []).includes(id);
+    ovMenu.innerHTML = `<button data-st="active" class="${closed ? "" : "on"}"><span>Active</span><small>đang làm</small></button><button data-st="close" class="${closed ? "on" : ""}"><span>Close</span><small>ẩn danh sách</small></button>`;
+    ovMenu.dataset.fid = id;
+  } else {
+    const fd = OV.files[btn.dataset.ovtab]; if (!fd || !fd.tabs || !fd.tabs.length) return;
+    const cur = ovCurTab(fd);
+    ovMenu.innerHTML = fd.tabs.map((t, i) => `<button data-tab="${ovEsc(t.n)}" class="${t === cur ? "on" : ""}"><span>${ovEsc(t.n)}</span>${i === 0 ? "<small>mặc định</small>" : ""}</button>`).join("");
+    ovMenu.dataset.fid = fd.id;
+  }
   ovMenu.classList.add("show"); btn.classList.add("open"); ovMenuBtn = btn;
   const r = btn.getBoundingClientRect(), mh = ovMenu.offsetHeight, mw = ovMenu.offsetWidth;
   ovMenu.style.left = Math.max(6, Math.min(r.left, innerWidth - mw - 6)) + "px";
@@ -2404,8 +2532,82 @@ function closeOvMenu() {
   if (ovMenuBtn) ovMenuBtn.classList.remove("open");
   ovMenuBtn = null;
 }
-ovMenu.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) ovPickTab(ovMenu.dataset.fid, b.dataset.tab); });
-document.addEventListener("mousedown", e => { if (ovMenu.classList.contains("show") && !e.target.closest("#ovMenu,[data-ovtab]")) closeOvMenu(); });
+ovMenu.addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if (b) { ovPickTab(ovMenu.dataset.fid, b.dataset.tab); return; }
+  const st = e.target.closest("[data-st]");
+  if (st) {
+    const id = ovMenu.dataset.fid, closed = new Set(OV.meta.closed || []);
+    closeOvMenu();
+    if ((st.dataset.st === "close") === closed.has(id)) return;
+    st.dataset.st === "close" ? closed.add(id) : closed.delete(id);
+    ovSaveMeta({ order: OV.meta.order || [], closed: [...closed] });
+  }
+});
+document.addEventListener("mousedown", e => { if (ovMenu.classList.contains("show") && !e.target.closest("#ovMenu,[data-ovtab],[data-ovst]")) closeOvMenu(); });
+
+/* giữ & kéo đầu mục file để đổi thứ tự ưu tiên (các file khác trượt mượt sang chỗ mới – FLIP) */
+let ovDrag = null, ovJustDragged = false;
+ovBody.addEventListener("pointerdown", e => {
+  if (e.button !== 0) return;
+  const fh = e.target.closest(".ofh");
+  if (!fh || e.target.closest("button,[data-ovopen]")) return;
+  const box = fh.parentElement; if (!box.dataset.fid) return;
+  ovDrag = { box, x: e.clientX, y: e.clientY, started: false };
+  ovDrag.timer = setTimeout(() => ovDrag && ovStartDrag(ovDrag), 200);
+});
+window.addEventListener("pointermove", e => {
+  const d = ovDrag; if (!d) return;
+  if (!d.started) {
+    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5) return;
+    clearTimeout(d.timer); ovStartDrag(d);
+  }
+  ovMoveDrag(e.clientX, e.clientY);
+});
+window.addEventListener("pointerup", () => {
+  const d = ovDrag; if (!d) return;
+  clearTimeout(d.timer); ovDrag = null;
+  if (d.started) ovEndDrag(d);
+});
+function ovStartDrag(d) {
+  d.started = true; closeOvMenu();
+  const r = d.box.getBoundingClientRect();
+  d.gx = d.x - r.left; d.gy = d.y - r.top;
+  d.before = [...ovBody.querySelectorAll(".of")].map(el => el.dataset.fid).join("|");
+  d.box.classList.add("ovlift"); document.body.classList.add("ovdragging");
+}
+function ovPlace(d, x, y) {
+  d.box.style.transform = "";
+  const r = d.box.getBoundingClientRect();
+  d.box.style.transform = `translate(${x - d.gx - r.left}px, ${y - d.gy - r.top}px)`;
+}
+function ovMoveDrag(x, y) {
+  const d = ovDrag; if (!d) return;
+  const boxes = [...ovBody.querySelectorAll(".of")];
+  const over = boxes.find(el => { if (el === d.box) return false; const r = el.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; });
+  if (over) {
+    const first = new Map(boxes.filter(el => el !== d.box).map(el => [el, el.getBoundingClientRect()]));
+    const from = boxes.indexOf(d.box), to = boxes.indexOf(over);
+    over.parentNode.insertBefore(d.box, to > from ? over.nextSibling : over);
+    for (const [el, a] of first) {
+      const b = el.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+      if (!dx && !dy) continue;
+      el.style.transition = "none"; el.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => { el.style.transition = "transform .22s cubic-bezier(.22,1,.36,1)"; el.style.transform = ""; });
+    }
+  }
+  ovPlace(d, x, y);
+}
+function ovEndDrag(d) {
+  ovJustDragged = true; setTimeout(() => { ovJustDragged = false; }, 0);
+  document.body.classList.remove("ovdragging");
+  d.box.style.transition = "transform .22s cubic-bezier(.22,1,.36,1)"; d.box.style.transform = "";
+  const order = [...ovBody.querySelectorAll(".of")].map(el => el.dataset.fid);
+  setTimeout(() => {
+    d.box.classList.remove("ovlift"); d.box.style.transition = "";
+    if (order.join("|") !== d.before) ovSaveMeta({ order, closed: OV.meta.closed || [] });
+    else if (d.pending) renderOv();
+  }, 230);
+}
 ovBody.addEventListener("scroll", closeOvMenu);
 setInterval(() => { if (OV.open && OV.index && !OV.setup) renderOv(); }, 60000);
 

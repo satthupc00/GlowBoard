@@ -44,6 +44,7 @@ Board ghi chú dạng widget nằm trên desktop Windows, chạy ở khay hệ t
 | Dòng mới | `Enter` ở đầu mục: thêm đầu mục mới · xuống dòng trong cùng mục: `Shift+Enter` |
 | Đổi cấp | `Tab`: đầu mục → mục con · `Shift+Tab`: mục con → đầu mục |
 | Di chuyển / mở rộng board | Kéo thanh dưới cùng (chỗ trống) · kéo các cạnh viền |
+| Kiểm tra cập nhật | Nút ⟳ cạnh ⚙ ở thanh dưới cùng (xanh = đã là bản mới nhất, nhấp nháy xanh = có bản mới, bấm để cài) |
 | Luôn nằm trên cùng | Nút ghim 📌 ở thanh dưới cùng, hoặc khay hệ thống → **Luôn nằm trên cùng** |
 | Hiện board lên trên | Click icon ở khay hệ thống (board tự lùi xuống dưới khi bạn click ra chỗ khác) |
 
@@ -55,6 +56,10 @@ Nút **▦ Overview** ở thanh dưới cùng (cạnh ⚙) mở **cửa sổ Ove
 - Dưới mỗi file là từng người (cột **Assignee**): **Đang** = WIP · **Xong** = Done · **Còn** = To-do, N/A, ô trống · số xám = tổng task. **Reject** không được đếm.
 - Bấm vào tên người để xem danh sách task (lấy dòng đầu ở cột **Miêu tả**): ● đang làm · ○ còn lại · ✓ đã xong.
 - Bấm icon sheet xanh để mở file · bấm tên file để thu gọn. Dữ liệu tự cập nhật khoảng 1–2 phút sau khi sheet được sửa.
+- **Refresh**: bắt script đọc lại toàn bộ file ở lần chạy kế tiếp (tối đa ~1 phút), không đợi Drive báo file đã sửa.
+- **Giữ & kéo** tên file để đổi thứ tự ưu tiên các dự án (các file khác tự trượt chỗ). Chung cho cả team.
+- Ô trạng thái **Active / Close** cạnh tên file: Close = dự án đã đóng, chuyển xám và ẩn danh sách bên dưới. Chung cho cả team.
+- Dòng có ô Status trống và dòng tiêu đề lặp lại (Assignee / Status) không được đếm.
 - Tab đã chọn và mục thu gọn được nhớ riêng trên máy bạn.
 
 **Kết nối lần đầu (1 người làm cho cả team, người đó cần quyền xem folder Drive):**

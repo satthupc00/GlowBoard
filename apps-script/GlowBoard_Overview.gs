@@ -32,6 +32,10 @@ function sync() {
     const seen = JSON.parse(props.getProperty('seen') || '{}');
     const auth = fbAuth();
     ensureMember(auth, props);
+    // Nút refresh trên GlowBoard: đọc lại toàn bộ file, không đợi Drive báo file đã sửa
+    const req = fsGetTime(auth, '_ovReq');
+    const force = req > Number(props.getProperty('reqAt') || 0);
+    if (force) props.setProperty('reqAt', String(req));
     const folder = DriveApp.getFolderById(FOLDER_ID);
     const it = folder.getFilesByType(MimeType.GOOGLE_SHEETS);
     const files = [], now = {};
@@ -40,7 +44,7 @@ function sync() {
       const f = it.next(), id = f.getId(), up = f.getLastUpdated().getTime();
       files.push({ id: id, name: f.getName(), url: f.getUrl(), updated: up });
       now[id] = up;
-      if (seen[id] === up) continue;
+      if (!force && seen[id] === up) continue;
       let data;
       try { data = readAll(SpreadsheetApp.open(f)); }
       catch (err) { data = { error: String((err && err.message) || err) }; }
@@ -52,7 +56,7 @@ function sync() {
       if (!(id in now)) { fsDelete(auth, '_ov_' + id); delete seen[id]; changed = true; }
     });
     const last = Number(props.getProperty('indexAt') || 0);
-    if (changed || Date.now() - last > HEARTBEAT_MS) {
+    if (changed || force || Date.now() - last > HEARTBEAT_MS) {
       files.sort(function (a, b) { return a.name.localeCompare(b.name); });
       fsSet(auth, '_ovIndex', { folder: folder.getName(), files: files, bot: auth.uid, at: Date.now() });
       props.setProperty('indexAt', String(Date.now()));
@@ -159,6 +163,13 @@ function fsSet(auth, docId, data) {
     PropertiesService.getScriptProperties().deleteProperty('memberCode');
     throw new Error('Gửi dữ liệu lỗi ' + res.getResponseCode() + ': ' + res.getContentText());
   }
+}
+function fsGetTime(auth, docId) {
+  const res = UrlFetchApp.fetch(docUrl('teams/' + TEAM_ID + '/items/' + docId), {
+    headers: { Authorization: 'Bearer ' + auth.idToken }, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return 0;
+  const f = JSON.parse(res.getContentText()).fields || {};
+  return f.at && f.at.timestampValue ? Date.parse(f.at.timestampValue) : 0;
 }
 function fsDelete(auth, docId) {
   UrlFetchApp.fetch(docUrl('teams/' + TEAM_ID + '/items/' + docId), {
