@@ -54,15 +54,16 @@ Nút **▦ Overview** ở thanh dưới cùng (cạnh ⚙) mở bảng tổng qu
 - Mỗi file sheet = 1 mục lớn: tên file, ô chọn **tab** (mặc định tab ngoài cùng bên trái), số task đã xong / tổng và thanh tiến độ.
 - Dưới mỗi file là từng người (cột **Assignee**): **Đang** = WIP · **Xong** = Done · **Còn** = To-do, N/A, ô trống · số xám = tổng task. **Reject** không được đếm.
 - Bấm vào tên người để xem danh sách task (lấy dòng đầu ở cột **Miêu tả**): ● đang làm · ○ còn lại · ✓ đã xong.
-- Bấm icon sheet xanh để mở file · bấm tên file để thu gọn · **Làm mới** để tải lại (tự tải lại khi mở nếu dữ liệu cũ hơn 2 phút).
+- Bấm icon sheet xanh để mở file · bấm tên file để thu gọn. Dữ liệu tự cập nhật khoảng 1–2 phút sau khi sheet được sửa.
 - Tab đã chọn và mục thu gọn được nhớ riêng trên máy bạn.
 
 **Kết nối lần đầu (1 người làm cho cả team, người đó cần quyền xem folder Drive):**
-1. Mở Overview → bấm **Copy script** (code nằm ở `apps-script/GlowBoard_Overview.gs`).
+Script chạy ngầm bằng tài khoản Google của người cài, mỗi phút đọc file vừa sửa và gửi lên board của team – không cần Deploy, không cần quyền "Anyone" (dùng được với tài khoản công ty).
+1. Mở Overview → kiểm tra link folder → bấm **Copy script** (mẫu nằm ở `apps-script/GlowBoard_Overview.gs`, app tự điền folder + mã team).
 2. Vào script.google.com → **New project** → xoá code mẫu → dán → lưu.
-3. **Deploy → New deployment** → loại **Web app**, Execute as **Me**, Who has access **Anyone** → Deploy → cho phép quyền.
-4. Copy **Web app URL** (đuôi `/exec`) dán vào ô trong Overview → **Kết nối**. Cả team tự dùng chung link này.
-   Đổi / ngắt link: icon 🔗 trên thanh Overview. Muốn đổi folder: sửa dòng `FOLDER_ID` trong script rồi Deploy lại (Manage deployments → Edit → New version).
+3. Ô chọn hàm trên thanh công cụ chọn **setup** → **▶ Run** → **Review permissions** → chọn tài khoản → **Allow**.
+4. Chờ 10–30 giây là cả team thấy dữ liệu.
+   Đổi folder / Admin đổi mã team: bấm **<>** trên thanh Overview → copy script mới → dán đè → chạy lại **setup**. Tắt hẳn: trong Apps Script → Triggers (đồng hồ) → xoá trigger `sync`.
 
 ## Tự cập nhật
 Mỗi lần push thay đổi trong `src/` lên GitHub, GitHub Actions (`.github/workflows/release.yml`) tự build và tạo một **Release** mới (`v1.0.<số lần build>`).

@@ -368,6 +368,7 @@
   .ovh{display:flex;align-items:center;gap:8px;padding:7px 10px 7px 6px;background:var(--chrome);border-bottom:1px solid var(--line);flex:none}
   .ovh .ib.icon{width:26px;height:26px;background:transparent;color:var(--mute)}
   .ovh .ib.icon:hover{background:var(--hover);color:var(--text)}
+  .ovh .ib.icon.on{color:#fff;background:rgba(229,56,59,.16)}
   .ovt{flex:1;min-width:0;line-height:1.25}
   .ovt b{font-size:14px}
   .ovt .sub{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -501,8 +502,7 @@
       <div class="ovh">
         <button class="ib icon" id="ovBack" title="Đóng Overview (Esc)"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
         <div class="ovt"><b>Overview</b><div class="sub" id="ovSub"></div></div>
-        <button class="ib icon" id="ovLink" title="Đổi link Apps Script" hidden><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></button>
-        <button class="ovbtn" id="ovRef" title="Làm mới"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Làm mới</button>
+        <button class="ib icon" id="ovSet" title="Kết nối Google Sheet (cài script / đổi folder)"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></button>
       </div>
       <div class="ovb" id="ovBody"></div>
     </section>
@@ -510,78 +510,169 @@
   <div class="ovmenu" id="ovMenu"></div>
   <script type="text/plain" id="gsCode">/**
  * GlowBoard Overview – Created by Mondiro
- * Đọc các file Google Sheet trong 1 folder Drive, trả về cột Assignee / Status / Miêu tả
- * để GlowBoard hiện bảng Overview. Deploy: Web app · Execute as: Me · Who has access: Anyone.
+ * Chạy ngầm bằng tài khoản Google của bạn: mỗi phút xem file Google Sheet nào trong folder vừa sửa,
+ * đọc cột Assignee / Status / Miêu tả của các tab rồi gửi lên board của team trên GlowBoard.
+ * Không cần Deploy. Chỉ cần chọn hàm "setup" trên thanh công cụ → Run (1 lần) → cho phép quyền.
+ * Tắt: Triggers (biểu tượng đồng hồ bên trái) → xoá trigger "sync".
  */
-const FOLDER_ID = '1qU8jVJETb_pg5C2hocS3Hd2s4_jNf0ZG';
+const FOLDER_ID = '{{FOLDER_ID}}';
+const TEAM_ID = '{{TEAM_ID}}';
+const TEAM_CODE = '{{TEAM_CODE}}';
+const API_KEY = '{{API_KEY}}';
+const PROJECT_ID = '{{PROJECT_ID}}';
+const BOT_NAME = 'Overview (Google Sheet)';
+const MAX_TABS = 15;
+const HEARTBEAT_MS = 15 * 60 * 1000;
 
-function doGet(e) {
-  const p = (e &amp;&amp; e.parameter) || {};
-  let out;
+function setup() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'sync') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('sync').timeBased().everyMinutes(1).create();
+  PropertiesService.getScriptProperties().deleteProperty('seen');
+  sync();
+  Logger.log('Xong! Mở GlowBoard → Overview để xem.');
+}
+
+function sync() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(2000)) return;
   try {
-    if (p.file) {
-      out = { ok: true, file: readFile(SpreadsheetApp.openById(p.file), p.tab) };
-    } else {
-      let tabs = {};
-      try { tabs = JSON.parse(p.tabs || '{}') || {}; } catch (err) {}
-      out = { ok: true, folder: DriveApp.getFolderById(FOLDER_ID).getName(), files: listFiles(tabs) };
+    const props = PropertiesService.getScriptProperties();
+    const seen = JSON.parse(props.getProperty('seen') || '{}');
+    const auth = fbAuth();
+    ensureMember(auth, props);
+    const folder = DriveApp.getFolderById(FOLDER_ID);
+    const it = folder.getFilesByType(MimeType.GOOGLE_SHEETS);
+    const files = [], now = {};
+    let changed = false;
+    while (it.hasNext()) {
+      const f = it.next(), id = f.getId(), up = f.getLastUpdated().getTime();
+      files.push({ id: id, name: f.getName(), url: f.getUrl(), updated: up });
+      now[id] = up;
+      if (seen[id] === up) continue;
+      let data;
+      try { data = readAll(SpreadsheetApp.open(f)); }
+      catch (err) { data = { error: String((err && err.message) || err) }; }
+      data.id = id; data.name = f.getName(); data.url = f.getUrl(); data.updated = up; data.at = Date.now();
+      fsSet(auth, '_ov_' + id, fitSize(data));
+      seen[id] = up; changed = true;
     }
-  } catch (err) {
-    out = { ok: false, error: String((err &amp;&amp; err.message) || err) };
+    Object.keys(seen).forEach(function (id) {
+      if (!(id in now)) { fsDelete(auth, '_ov_' + id); delete seen[id]; changed = true; }
+    });
+    const last = Number(props.getProperty('indexAt') || 0);
+    if (changed || Date.now() - last > HEARTBEAT_MS) {
+      files.sort(function (a, b) { return a.name.localeCompare(b.name); });
+      fsSet(auth, '_ovIndex', { folder: folder.getName(), files: files, bot: auth.uid, at: Date.now() });
+      props.setProperty('indexAt', String(Date.now()));
+    }
+    props.setProperty('seen', JSON.stringify(seen));
+  } finally {
+    lock.releaseLock();
   }
-  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
 
-function listFiles(tabs) {
-  const it = DriveApp.getFolderById(FOLDER_ID).getFilesByType(MimeType.GOOGLE_SHEETS);
-  const files = [];
-  while (it.hasNext()) {
-    const f = it.next();
-    try { files.push(readFile(SpreadsheetApp.open(f), tabs[f.getId()])); }
-    catch (err) { files.push({ id: f.getId(), name: f.getName(), error: String((err &amp;&amp; err.message) || err) }); }
-  }
-  files.sort(function (a, b) { return a.name.localeCompare(b.name); });
-  return files;
-}
-
-// Tab mặc định = tab ngoài cùng bên trái
-function readFile(ss, tabName) {
-  const sheets = ss.getSheets();
-  const sh = (tabName &amp;&amp; ss.getSheetByName(tabName)) || sheets[0];
-  return {
-    id: ss.getId(), name: ss.getName(), url: ss.getUrl(),
-    tabs: sheets.map(function (s) { return s.getName(); }),
-    tab: sh.getName(), rows: readRows(sh)
-  };
+/* ---------- đọc sheet ---------- */
+// Các tab theo đúng thứ tự trong file (tab ngoài cùng bên trái đứng đầu), bỏ tab bị ẩn
+function readAll(ss) {
+  const tabs = [];
+  ss.getSheets().forEach(function (sh) {
+    if (sh.isSheetHidden() || tabs.length >= MAX_TABS) return;
+    tabs.push({ n: sh.getName(), rows: readRows(sh) });
+  });
+  return { tabs: tabs };
 }
 
 // Mỗi dòng: [assignee, status, id, miêu tả]. Dòng tiêu đề = dòng đầu tiên có cả "Assign…" và "Status".
 function readRows(sh) {
   const v = sh.getDataRange().getDisplayValues();
   let h = -1, cA = -1, cS = -1, cD = -1, cI = -1;
-  for (let r = 0; r &lt; Math.min(v.length, 15) &amp;&amp; h &lt; 0; r++) {
+  for (let r = 0; r < Math.min(v.length, 15) && h < 0; r++) {
     cA = cS = cD = cI = -1;
     v[r].forEach(function (x, c) {
       const t = String(x).toLowerCase().replace(/\s+/g, ' ').trim();
       if (!t) return;
-      if (cA &lt; 0 &amp;&amp; /assign/.test(t)) cA = c;
-      else if (cS &lt; 0 &amp;&amp; /^(status|trạng thái)/.test(t)) cS = c;
-      else if (cD &lt; 0 &amp;&amp; /(miêu tả|mô tả|description|tên task|task name)/.test(t)) cD = c;
-      else if (cI &lt; 0 &amp;&amp; /(\bid\b|số thứ tự|stt)/.test(t)) cI = c;
+      if (cA < 0 && /assign/.test(t)) cA = c;
+      else if (cS < 0 && /^(status|trạng thái)/.test(t)) cS = c;
+      else if (cD < 0 && /(miêu tả|mô tả|description|tên task|task name)/.test(t)) cD = c;
+      else if (cI < 0 && /(\bid\b|số thứ tự|stt)/.test(t)) cI = c;
     });
-    if (cA &gt;= 0 &amp;&amp; cS &gt;= 0) h = r;
+    if (cA >= 0 && cS >= 0) h = r;
   }
-  if (h &lt; 0) return null;
+  if (h < 0) return null;
   const rows = [];
   let lastId = '';
-  for (let r = h + 1; r &lt; v.length; r++) {
-    const id = cI &gt;= 0 ? String(v[r][cI]).trim() : '';
+  for (let r = h + 1; r < v.length; r++) {
+    const id = cI >= 0 ? String(v[r][cI]).trim() : '';
     if (id) lastId = id;
     const a = String(v[r][cA]).trim();
     if (!a) continue;
-    rows.push([a, String(v[r][cS]).trim(), id || lastId, cD &gt;= 0 ? String(v[r][cD]).trim().slice(0, 160) : '']);
+    const d = cD >= 0 ? (String(v[r][cD]).split('\n').map(function (x) { return x.trim(); }).filter(String)[0] || '') : '';
+    rows.push([a, String(v[r][cS]).trim(), id || lastId, d.slice(0, 90)]);
   }
   return rows;
+}
+
+// Firestore giới hạn 1MB / tài liệu → bớt tab cuối nếu quá lớn
+function fitSize(data) {
+  while (JSON.stringify(data).length > 900000 && data.tabs && data.tabs.length > 1) data.tabs.pop();
+  return data;
+}
+
+/* ---------- gửi lên GlowBoard ---------- */
+function fbAuth() {
+  const cache = CacheService.getScriptCache(), props = PropertiesService.getScriptProperties();
+  const tok = cache.get('idToken'), uid = props.getProperty('uid');
+  if (tok && uid) return { idToken: tok, uid: uid };
+  let res, j;
+  const refresh = props.getProperty('refreshToken');
+  if (refresh) {
+    res = UrlFetchApp.fetch('https://securetoken.googleapis.com/v1/token?key=' + API_KEY, {
+      method: 'post', payload: { grant_type: 'refresh_token', refresh_token: refresh }, muteHttpExceptions: true });
+    if (res.getResponseCode() === 200) {
+      j = JSON.parse(res.getContentText());
+      props.setProperty('refreshToken', j.refresh_token); props.setProperty('uid', j.user_id);
+      cache.put('idToken', j.id_token, 3000);
+      return { idToken: j.id_token, uid: j.user_id };
+    }
+  }
+  res = UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + API_KEY, {
+    method: 'post', contentType: 'application/json', payload: JSON.stringify({ returnSecureToken: true }) });
+  j = JSON.parse(res.getContentText());
+  props.setProperty('refreshToken', j.refreshToken); props.setProperty('uid', j.localId);
+  props.deleteProperty('memberCode');
+  cache.put('idToken', j.idToken, 3000);
+  return { idToken: j.idToken, uid: j.localId };
+}
+
+function docUrl(path) {
+  return 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/' + path;
+}
+function ensureMember(auth, props) {
+  if (props.getProperty('memberCode') === TEAM_CODE + '|' + auth.uid) return;
+  const body = { fields: {
+    name: { stringValue: BOT_NAME }, code: { stringValue: TEAM_CODE },
+    joinedAt: { timestampValue: new Date().toISOString() } } };
+  const res = UrlFetchApp.fetch(docUrl('teams/' + TEAM_ID + '/members/' + auth.uid), {
+    method: 'patch', contentType: 'application/json', headers: { Authorization: 'Bearer ' + auth.idToken },
+    payload: JSON.stringify(body), muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('Không vào được team (mã team đã đổi hoặc team bị khóa?): ' + res.getContentText());
+  props.setProperty('memberCode', TEAM_CODE + '|' + auth.uid);
+}
+function fsSet(auth, docId, data) {
+  const body = { fields: { json: { stringValue: JSON.stringify(data) } } };
+  const res = UrlFetchApp.fetch(docUrl('teams/' + TEAM_ID + '/items/' + docId), {
+    method: 'patch', contentType: 'application/json', headers: { Authorization: 'Bearer ' + auth.idToken },
+    payload: JSON.stringify(body), muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) {
+    PropertiesService.getScriptProperties().deleteProperty('memberCode');
+    throw new Error('Gửi dữ liệu lỗi ' + res.getResponseCode() + ': ' + res.getContentText());
+  }
+}
+function fsDelete(auth, docId) {
+  UrlFetchApp.fetch(docUrl('teams/' + TEAM_ID + '/items/' + docId), {
+    method: 'delete', headers: { Authorization: 'Bearer ' + auth.idToken }, muteHttpExceptions: true });
 }
 </script>
   <footer class="foot" id="foot">
@@ -1741,6 +1832,7 @@ function renderMembers() {
   // cùng một tên (không phân biệt hoa thường) = cùng một người → gộp thành 1 dòng
   const groups = new Map();
   for (const m of members) {
+    if (OV.index && m.uid === OV.index.bot) continue;     // script Overview không phải người
     const name = String(m.name || "?").trim() || "?";
     const key = name.toLowerCase();
     const seen = Math.max(tsMs(m.lastSeen), tsMs(m.joinedAt));
@@ -2034,12 +2126,14 @@ function copyText(t) {
 }
 
 /* ================= Overview: tổng quan task từ các file Google Sheet =================
-   Link Apps Script (web app) lưu chung cho team ở teams/{team}/items/_overview (không có "order").
-   Apps Script đọc folder Drive → trả về [assignee, status, id, miêu tả] của tab ngoài cùng bên trái
-   (hoặc tab đã chọn). Dữ liệu lần tải gần nhất cache trên máy để mở là thấy ngay. */
-const OV_DOC = "_overview";
-const OV_STALE = 2 * 60 * 1000;
-const OV = { url: "", data: null, at: 0, loading: false, err: "", open: false, openP: new Set(), busy: new Set(), unsub: null };
+   Apps Script chạy ngầm bằng tài khoản Google của người cài (không cần Deploy / quyền "Anyone"):
+   mỗi phút đọc các file vừa sửa trong folder Drive rồi ghi vào board của team:
+     teams/{team}/items/_ovIndex  = { json: {folder, files:[{id,name,url,updated}], bot, at} }
+     teams/{team}/items/_ov_<id>  = { json: {id,name,url,updated,at, tabs:[{n, rows:[[assignee,status,id,miêu tả]]|null}], error?} }
+   (không có "order" nên không lẫn vào danh sách đầu mục). App chỉ việc lắng nghe. */
+const OV_DEFAULT_FOLDER = "1qU8jVJETb_pg5C2hocS3Hd2s4_jNf0ZG";
+const OV_STALE = 30 * 60 * 1000;                        // script gửi tín hiệu mỗi 15 phút; quá 30 phút = có thể đã dừng
+const OV = { index: null, files: {}, open: false, setup: false, openP: new Set(), unsub: null, fileUnsubs: {} };
 const ovp = $("#ovp"), ovBody = $("#ovBody"), ovMenu = $("#ovMenu");
 const OV_ORDER = { wip: 0, left: 1, done: 2 };
 const SHEET_SVG = '<svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2.5" fill="#1FA463"/><path d="M8 9h8M8 13h8M8 17h8M12 9v8" stroke="#fff" stroke-width="1.6" fill="none"/></svg>';
@@ -2049,31 +2143,37 @@ const CHEV_SVG = '<svg viewBox="0 0 10 10"><path d="M2.5 4l2.5 2.5L7.5 4"/></svg
 function ovJSON(k, def) { try { return JSON.parse(store.get(k)) || def; } catch (_) { return def; } }
 function ovTabs() { return ovJSON("ovTabs", {}); }
 function ovFolded() { return new Set(ovJSON("ovFold", [])); }
+function ovParse(snap) { try { return snap.exists() ? JSON.parse(snap.data().json || "null") : null; } catch (_) { return null; } }
+function ovItemRef(id) { return FB.doc(FB_DB, "teams", S.teamId, "items", id); }
 
 function listenOverview() {
-  if (OV.unsub) OV.unsub();
-  OV.unsub = FB.onSnapshot(FB.doc(FB_DB, "teams", S.teamId, "items", OV_DOC), snap => {
-    const url = snap.exists() ? String(snap.data().url || "") : "";
-    if (url !== OV.url) { OV.url = url; OV.err = ""; if (OV.open && url && !OV.data) ovLoad(); }
+  stopOverview();
+  OV.unsub = FB.onSnapshot(ovItemRef("_ovIndex"), snap => {
+    OV.index = ovParse(snap);
+    syncFileListeners();
     renderOv();
   }, () => {});
 }
+// lắng nghe từng file trong danh sách (thêm / bỏ theo index)
+function syncFileListeners() {
+  const want = new Set(((OV.index && OV.index.files) || []).map(f => f.id));
+  for (const id of Object.keys(OV.fileUnsubs)) if (!want.has(id)) { OV.fileUnsubs[id](); delete OV.fileUnsubs[id]; delete OV.files[id]; }
+  for (const id of want) if (!OV.fileUnsubs[id]) {
+    OV.fileUnsubs[id] = FB.onSnapshot(ovItemRef("_ov_" + id), snap => { OV.files[id] = ovParse(snap); renderOv(); }, () => {});
+  }
+}
 function stopOverview() {
   if (OV.unsub) { OV.unsub(); OV.unsub = null; }
-  OV.url = ""; OV.data = null; OV.at = 0; OV.err = ""; OV.openP.clear();
+  for (const u of Object.values(OV.fileUnsubs)) u();
+  OV.fileUnsubs = {}; OV.files = {}; OV.index = null; OV.openP.clear(); OV.setup = false;
   closeOverview();
 }
 
 function openOverview() {
   if (!S.teamId) return;
-  if (!OV.data) {
-    const c = ovJSON("ovData." + S.teamId, null);
-    if (c && c.files) { OV.data = c; OV.at = c.at || 0; }
-  }
   OV.open = true; ovp.classList.add("show"); $("#bOv").classList.add("on");
   $("#bCfg").hidden = true; closeMembers();
   renderOv();
-  if (OV.url && (!OV.data || Date.now() - OV.at > OV_STALE)) ovLoad();
 }
 function closeOverview() {
   OV.open = false; ovp.classList.remove("show"); closeOvMenu();
@@ -2081,13 +2181,8 @@ function closeOverview() {
   if ($("#scroll").classList.contains("show")) $("#bCfg").hidden = false;
 }
 $("#bOv").onclick = () => OV.open ? closeOverview() : openOverview();
-$("#ovBack").onclick = closeOverview;
-$("#ovRef").onclick = () => ovLoad();
-$("#ovLink").onclick = () => dialog({
-  title: "Link Apps Script", text: "Link Web app (đuôi /exec) dùng chung cho cả team. Xoá trống để ngắt kết nối.",
-  input: { value: OV.url, placeholder: "https://script.google.com/macros/s/…/exec" },
-  buttons: [{ label: "Huỷ" }, { label: "Lưu", def: true, run: v => ovSetUrl(v, null) }],
-});
+$("#ovBack").onclick = () => { if (OV.setup && OV.index) { OV.setup = false; renderOv(); } else closeOverview(); };
+$("#ovSet").onclick = () => { OV.setup = !OV.setup; renderOv(); };
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape" || !OV.open || veil.classList.contains("show")) return;
   if (ovMenu.classList.contains("show")) closeOvMenu(); else closeOverview();
@@ -2107,9 +2202,9 @@ function ovTaskName(id, desc) {
   if (line.length > 70) line = line.slice(0, 68).trim() + "…";
   return (id ? "#" + id + " " : "") + (line || "(chưa có miêu tả)");
 }
-function ovSummary(f) {
+function ovSummary(rows) {
   const people = new Map(); let done = 0, total = 0;
-  for (const [a, st, id, d] of f.rows || []) {
+  for (const [a, st, id, d] of rows || []) {
     const k = ovKind(st); if (!k) continue;
     total++; if (k === "done") done++;
     for (const name of String(a).split(/[,;\n]+/).map(x => x.trim()).filter(Boolean)) {
@@ -2123,105 +2218,64 @@ function ovSummary(f) {
   list.forEach(p => p.tasks.sort((x, y) => OV_ORDER[x.k] - OV_ORDER[y.k]));
   return { list, done, total };
 }
-function ovErrText(e) {
-  const m = String((e && e.message) || e || "");
-  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Không đọc được dữ liệu. Kiểm tra mạng, và lúc Deploy phải chọn Who has access: \"Anyone\" (không phải \"Anyone within …\").";
-  if (/JSON|Unexpected token|bad response/i.test(m)) return "Lúc Deploy phải chọn Who has access: \"Anyone\" (không phải \"Anyone within …\" hay \"Only myself\").";
-  if (/not found|không tìm thấy|No item with the given ID/i.test(m)) return "Apps Script không mở được folder / file. Kiểm tra FOLDER_ID và quyền xem folder.";
-  return m || "Lỗi không rõ";
+// tab đang xem của 1 file: tab đã chọn trên máy này, không còn thì tab ngoài cùng bên trái
+function ovCurTab(fd) {
+  const tabs = (fd && fd.tabs) || [], want = ovTabs()[fd.id];
+  return tabs.find(t => t.n === want) || tabs[0] || null;
 }
-async function ovFetch(url, params) {
-  const u = new URL(url);
-  for (const [k, v] of Object.entries(params || {})) u.searchParams.set(k, v);
-  const r = await fetch(u.toString(), { redirect: "follow", cache: "no-store" });
-  const text = await r.text();
-  let j; try { j = JSON.parse(text); } catch (_) { throw new Error("bad response"); }
-  if (!j || !j.ok) throw new Error((j && j.error) || "Lỗi Apps Script");
-  return j;
-}
-function ovSave() {
-  if (!S.teamId || !OV.data) return;
-  store.set("ovData." + S.teamId, JSON.stringify(Object.assign({}, OV.data, { at: OV.at })));
-}
-async function ovLoad() {
-  if (!OV.url || OV.loading) return;
-  const team = S.teamId, url = OV.url;
-  OV.loading = true; OV.err = ""; renderOv();
-  try {
-    const j = await ovFetch(url, { tabs: JSON.stringify(ovTabs()) });
-    if (S.teamId !== team || OV.url !== url) return;
-    OV.data = { folder: j.folder || "", files: j.files || [] }; OV.at = Date.now(); ovSave();
-  } catch (e) { if (S.teamId === team) OV.err = ovErrText(e); }
-  finally { if (S.teamId === team) { OV.loading = false; renderOv(); } }
-}
-async function ovPickTab(fid, tab) {
+function ovPickTab(fid, tab) {
   closeOvMenu();
-  const f = OV.data && OV.data.files.find(x => x.id === fid); if (!f || f.tab === tab) return;
+  const fd = OV.files[fid]; if (!fd) return;
   const tabs = ovTabs();
-  if (tab === f.tabs[0]) delete tabs[fid]; else tabs[fid] = tab;     // tab đầu tiên = mặc định, không cần nhớ
+  if (fd.tabs[0] && tab === fd.tabs[0].n) delete tabs[fid]; else tabs[fid] = tab;   // tab đầu tiên = mặc định
   store.set("ovTabs", JSON.stringify(tabs));
-  OV.busy.add(fid); renderOv();
-  try {
-    const j = await ovFetch(OV.url, { file: fid, tab });
-    const i = OV.data.files.findIndex(x => x.id === fid);
-    if (i >= 0) OV.data.files[i] = j.file;
-    ovSave();
-  } catch (e) { toast(ovErrText(e)); }
-  OV.busy.delete(fid); renderOv();
+  renderOv();
 }
-async function ovSetUrl(v, errEl) {
+
+/* ---- script cho người cài ---- */
+function ovFolderId(v) {
   v = String(v || "").trim();
-  const showErr = m => { if (errEl) errEl.textContent = m; else toast(m); };
-  if (v && !/^https:\/\/script\.google\.com\/(a\/macros\/[^/\s]+|(a\/[^/\s]+\/)?macros)\/s\/[\w-]+\/exec(\?\S*)?$/.test(v)) { showErr("Link phải có dạng https://script.google.com/macros/s/…/exec"); return; }
-  const ref = FB.doc(FB_DB, "teams", S.teamId, "items", OV_DOC);
-  try {
-    if (!v) { await FB.deleteDoc(ref); OV.data = null; store.set("ovData." + S.teamId, ""); toast("Đã ngắt kết nối Google Sheet"); return; }
-    if (errEl) errEl.textContent = "Đang kiểm tra link…";
-    const j = await ovFetch(v, { tabs: JSON.stringify(ovTabs()) });
-    OV.data = { folder: j.folder || "", files: j.files || [] }; OV.at = Date.now(); OV.err = ""; OV.url = v; ovSave();
-    await FB.setDoc(ref, { url: v, by: S.admin ? "Admin" : (S.name || ""), at: FB.serverTimestamp() });
-    toast("Đã kết nối · " + OV.data.files.length + " file");
-    renderOv();
-  } catch (e) { showErr(ovErrText(e)); }
+  const m = v.match(/\/folders\/([\w-]{10,})/) || v.match(/[?&]id=([\w-]{10,})/) || v.match(/^([\w-]{20,})$/);
+  return m ? m[1] : "";
+}
+function ovScript(folderId) {
+  const map = { FOLDER_ID: folderId, TEAM_ID: S.teamId, TEAM_CODE: S.teamCode || "", API_KEY: FIREBASE_CONFIG.apiKey, PROJECT_ID: FIREBASE_CONFIG.projectId };
+  return $("#gsCode").textContent.trim().replace(/\{\{(\w+)\}\}/g, (m, k) => map[k] != null ? map[k] : m) + "\n";
 }
 
 /* ---- giao diện ---- */
 function ovEsc(t) { return escHtml(String(t == null ? "" : t)); }
 function renderOv() {
   if (!OV.open) return;
-  const sub = $("#ovSub"), ref = $("#ovRef");
-  ref.classList.toggle("spin", OV.loading); ref.disabled = !OV.url || OV.loading;
-  $("#ovLink").hidden = !OV.url;
-  if (!OV.url) { sub.textContent = "Chưa kết nối Google Sheet"; ovBody.innerHTML = ovSetupHTML(); return; }
-  const files = (OV.data && OV.data.files) || [];
-  sub.textContent = !OV.data ? (OV.loading ? "Đang tải…" : "Chưa có dữ liệu")
-    : files.length + " file · " + (OV.loading ? "đang làm mới…" : "cập nhật " + ago(OV.at));
-  if (!OV.data) {
-    ovBody.innerHTML = OV.err ? `<div class="oempty">${ovEsc(OV.err)}<br><button class="bigbtn" data-ov="retry">Thử lại</button></div>`
-      : `<div class="oempty">Đang đọc các file sheet…<br><small>Lần đầu có thể mất 10–30 giây.</small></div>`;
+  const sub = $("#ovSub"), ix = OV.index;
+  $("#ovSet").classList.toggle("on", OV.setup);
+  if (!ix || OV.setup) {
+    sub.textContent = ix ? "Cài lại / đổi folder" : "Chưa kết nối Google Sheet";
+    if (!ovBody.querySelector(".ovset")) ovBody.innerHTML = ovSetupHTML();
     return;
   }
+  const files = ix.files || [];
+  const last = Math.max(ix.at || 0, ...files.map(f => (OV.files[f.id] && OV.files[f.id].at) || 0));
+  sub.textContent = files.length + " file · cập nhật " + ago(last);
   const fold = ovFolded();
-  let h = OV.err ? `<div class="obar">${ovEsc(OV.err)}</div>` : "";
-  if (!files.length) h += `<div class="oempty">Folder chưa có file Google Sheet nào.</div>`;
-  for (const f of files) {
-    const fid = ovEsc(f.id);
-    if (f.error) {
-      h += `<div class="of"><div class="ofh" data-ovf="${fid}">${ARR_SVG}<span class="osheet">${SHEET_SVG}</span><span class="nm">${ovEsc(f.name)}</span></div><div class="onote bad">Không đọc được: ${ovEsc(f.error)}</div></div>`;
-      continue;
-    }
-    const s = ovSummary(f), pct = s.total ? Math.round(s.done / s.total * 100) : 0;
-    const busy = OV.busy.has(f.id);
-    h += `<div class="of${fold.has(f.id) ? " fold" : ""}" data-fid="${fid}">
-      <div class="ofh" data-ovf="${fid}" title="Bấm để thu gọn / mở rộng">${ARR_SVG}<span class="osheet" data-ovopen="${fid}" title="Mở file sheet">${SHEET_SVG}</span><span class="nm">${ovEsc(f.name)}</span>
-        <button class="otab" data-ovtab="${fid}" title="Chọn tab"><span>${ovEsc(busy ? "Đang tải…" : f.tab)}</span>${CHEV_SVG}</button>
-        <span class="tot">${s.done}/${s.total} xong</span></div>
+  let h = Date.now() - (ix.at || 0) > OV_STALE
+    ? `<div class="obar">Script trên Google chưa gửi dữ liệu từ ${ovEsc(ago(ix.at || 0))}. Có thể máy người cài đã tắt quyền, mã team đã đổi hoặc trigger đã bị xoá → bấm ⚙ để cài lại.</div>` : "";
+  if (!files.length) h += `<div class="oempty">Folder${ix.folder ? " “" + ovEsc(ix.folder) + "”" : ""} chưa có file Google Sheet nào.</div>`;
+  for (const meta of files) {
+    const fd = OV.files[meta.id], fid = ovEsc(meta.id);
+    const head = (extra) => `<div class="ofh" data-ovf="${fid}" title="Bấm để thu gọn / mở rộng">${ARR_SVG}<span class="osheet" data-ovopen="${fid}" title="Mở file sheet">${SHEET_SVG}</span><span class="nm">${ovEsc(meta.name)}</span>${extra || ""}</div>`;
+    if (!fd) { h += `<div class="of">${head()}<div class="onote">Đang tải…</div></div>`; continue; }
+    if (fd.error) { h += `<div class="of">${head()}<div class="onote bad">Không đọc được: ${ovEsc(fd.error)}</div></div>`; continue; }
+    const tab = ovCurTab(fd), s = ovSummary(tab && tab.rows), pct = s.total ? Math.round(s.done / s.total * 100) : 0;
+    h += `<div class="of${fold.has(meta.id) ? " fold" : ""}">
+      ${head(`<button class="otab" data-ovtab="${fid}" title="Chọn tab"><span>${ovEsc(tab ? tab.n : "—")}</span>${CHEV_SVG}</button><span class="tot">${s.done}/${s.total} xong</span>`)}
       <div class="oprog"><i style="width:${pct}%"></i></div>
       <div class="ofold"><div>`;
-    if (f.rows == null) h += `<div class="onote">Tab này không có cột "Assignee" và "Status".</div>`;
+    if (!tab) h += `<div class="onote">File không có tab nào.</div>`;
+    else if (tab.rows == null) h += `<div class="onote">Tab này không có cột "Assignee" và "Status".</div>`;
     else if (!s.list.length) h += `<div class="onote">Chưa có task nào được assign.</div>`;
     for (const p of s.list) {
-      const pk = f.id + "|" + p.key, open = OV.openP.has(pk);
+      const pk = meta.id + "|" + p.key, open = OV.openP.has(pk);
       h += `<div class="op${open ? " open" : ""}" data-ovp="${ovEsc(pk)}"><span class="av" style="background:${avColor(p.name)}">${ovEsc(p.name.charAt(0).toUpperCase())}</span><span class="pn" title="${ovEsc(p.name)}">${ovEsc(p.name)}</span>`
         + (p.wip ? `<span class="pill wip" title="Đang làm (WIP)">Đang ${p.wip}</span>` : "")
         + (p.done ? `<span class="pill done" title="Đã xong (Done)">Xong ${p.done}</span>` : "")
@@ -2231,38 +2285,43 @@ function renderOv() {
     }
     h += `</div></div></div>`;
   }
+  closeOvMenu();
   ovBody.innerHTML = h;
 }
 function ovSetupHTML() {
+  const folder = store.get("ovFolder") || "https://drive.google.com/drive/folders/" + OV_DEFAULT_FOLDER;
   return `<div class="ovset">
     <h3>Kết nối Google Sheet</h3>
-    Làm 1 lần cho cả team, bởi người có quyền xem folder Drive:
+    Làm 1 lần cho cả team, bởi người có quyền xem folder Drive. Script chạy ngầm bằng tài khoản Google của bạn, mỗi phút gửi dữ liệu mới lên GlowBoard.
+    <label for="ovFolder" style="display:block;margin:10px 0 4px;color:#fff">Link folder Google Drive</label>
+    <input class="fin" id="ovFolder" spellcheck="false" autocomplete="off" value="${ovEsc(folder)}">
+    <div class="err" id="ovErr"></div>
     <ol>
-      <li>Mở <a data-ovlink="https://script.google.com/home/projects/create">script.google.com</a> → dự án mới. Xoá hết code mẫu.</li>
-      <li>Bấm <b>Copy script</b> bên dưới rồi dán vào → bấm 💾 lưu.</li>
-      <li><b>Deploy → New deployment</b> → ⚙ chọn <b>Web app</b>. Execute as: <b>Me</b> · Who has access: <b>Anyone</b> → <b>Deploy</b> → cho phép quyền truy cập.</li>
-      <li>Copy <b>Web app URL</b> (đuôi <b>/exec</b>) dán vào ô dưới → <b>Kết nối</b>.</li>
+      <li>Bấm <b>Copy script</b> bên dưới.</li>
+      <li>Mở <a data-ovlink="https://script.google.com/home/projects/create">script.google.com</a> → dự án mới. Xoá hết code mẫu, dán script vào → bấm 💾 lưu.</li>
+      <li>Trên thanh công cụ, ô chọn hàm chọn <b>setup</b> → bấm <b>▶ Run</b> → <b>Review permissions</b> → chọn tài khoản → <b>Allow</b>.</li>
+      <li>Chờ chạy xong (10–30 giây), quay lại đây là thấy dữ liệu.</li>
     </ol>
     <div class="row2"><button class="ovbtn" data-ov="copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy script</button></div>
-    <input class="fin" id="ovUrl" spellcheck="false" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
-    <div class="err" id="ovErr"></div>
-    <button class="bigbtn" data-ov="save">Kết nối</button>
+    <small style="color:var(--mute)">Script có sẵn mã team. Nếu Admin đổi mã team, hãy copy script mới, dán đè rồi chạy lại <b>setup</b>.</small>
   </div>`;
 }
 ovBody.addEventListener("click", e => {
   const t = e.target;
   const act = t.closest("[data-ov]");
   if (act) {
-    const a = act.dataset.ov;
-    if (a === "retry") ovLoad();
-    else if (a === "copy") { copyText($("#gsCode").textContent.trim() + "\n"); toast("Đã copy script"); }
-    else if (a === "save") ovSetUrl($("#ovUrl").value, $("#ovErr"));
+    if (act.dataset.ov === "copy") {
+      const raw = $("#ovFolder").value, id = ovFolderId(raw);
+      if (!id) { $("#ovErr").textContent = "Link folder chưa đúng (dạng https://drive.google.com/drive/folders/…)"; return; }
+      $("#ovErr").textContent = ""; store.set("ovFolder", raw.trim());
+      copyText(ovScript(id)); toast("Đã copy script");
+    }
     return;
   }
   const lk = t.closest("[data-ovlink]");
   if (lk) { send("openLink", { url: lk.dataset.ovlink }); return; }
   const op = t.closest("[data-ovopen]");
-  if (op) { const f = OV.data.files.find(x => x.id === op.dataset.ovopen); if (f && f.url) send("openLink", { url: f.url }); return; }
+  if (op) { const m = ((OV.index && OV.index.files) || []).find(x => x.id === op.dataset.ovopen); if (m && m.url) send("openLink", { url: m.url }); return; }
   const tb = t.closest("[data-ovtab]");
   if (tb) { openOvMenu(tb); return; }
   const fh = t.closest("[data-ovf]");
@@ -2279,16 +2338,16 @@ ovBody.addEventListener("click", e => {
     pp.classList.contains("open") ? OV.openP.add(pp.dataset.ovp) : OV.openP.delete(pp.dataset.ovp);
   }
 });
-ovBody.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "ovUrl") ovSetUrl(e.target.value, $("#ovErr")); });
 
 /* menu chọn tab */
 let ovMenuBtn = null;
 function openOvMenu(btn) {
   if (ovMenuBtn === btn && ovMenu.classList.contains("show")) { closeOvMenu(); return; }
   closeOvMenu();
-  const f = OV.data.files.find(x => x.id === btn.dataset.ovtab); if (!f || !f.tabs) return;
-  ovMenu.innerHTML = f.tabs.map((n, i) => `<button data-tab="${ovEsc(n)}" class="${n === f.tab ? "on" : ""}"><span>${ovEsc(n)}</span>${i === 0 ? "<small>mặc định</small>" : ""}</button>`).join("");
-  ovMenu.dataset.fid = f.id;
+  const fd = OV.files[btn.dataset.ovtab]; if (!fd || !fd.tabs || !fd.tabs.length) return;
+  const cur = ovCurTab(fd);
+  ovMenu.innerHTML = fd.tabs.map((t, i) => `<button data-tab="${ovEsc(t.n)}" class="${t === cur ? "on" : ""}"><span>${ovEsc(t.n)}</span>${i === 0 ? "<small>mặc định</small>" : ""}</button>`).join("");
+  ovMenu.dataset.fid = fd.id;
   ovMenu.classList.add("show"); btn.classList.add("open"); ovMenuBtn = btn;
   const r = btn.getBoundingClientRect(), mh = ovMenu.offsetHeight, mw = ovMenu.offsetWidth;
   ovMenu.style.left = Math.max(6, Math.min(r.left, innerWidth - mw - 6)) + "px";
@@ -2302,7 +2361,7 @@ function closeOvMenu() {
 ovMenu.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) ovPickTab(ovMenu.dataset.fid, b.dataset.tab); });
 document.addEventListener("mousedown", e => { if (ovMenu.classList.contains("show") && !e.target.closest("#ovMenu,[data-ovtab]")) closeOvMenu(); });
 ovBody.addEventListener("scroll", closeOvMenu);
-setInterval(() => { if (OV.open && OV.data && !OV.loading) $("#ovSub").textContent = OV.data.files.length + " file · cập nhật " + ago(OV.at); }, 30000);
+setInterval(() => { if (OV.open && OV.index && !OV.setup) renderOv(); }, 60000);
 
 send("ready");
 if (window.FB) initFirebase();
