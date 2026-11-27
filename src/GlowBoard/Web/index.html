@@ -2125,8 +2125,8 @@ function ovSummary(f) {
 }
 function ovErrText(e) {
   const m = String((e && e.message) || e || "");
-  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Không kết nối được. Kiểm tra mạng, hoặc link Apps Script chưa đúng.";
-  if (/JSON|Unexpected token|bad response/i.test(m)) return "Link chưa đúng, hoặc lúc Deploy chưa chọn \"Who has access: Anyone\".";
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Không đọc được dữ liệu. Kiểm tra mạng, và lúc Deploy phải chọn Who has access: \"Anyone\" (không phải \"Anyone within …\").";
+  if (/JSON|Unexpected token|bad response/i.test(m)) return "Lúc Deploy phải chọn Who has access: \"Anyone\" (không phải \"Anyone within …\" hay \"Only myself\").";
   if (/not found|không tìm thấy|No item with the given ID/i.test(m)) return "Apps Script không mở được folder / file. Kiểm tra FOLDER_ID và quyền xem folder.";
   return m || "Lỗi không rõ";
 }
@@ -2172,7 +2172,7 @@ async function ovPickTab(fid, tab) {
 async function ovSetUrl(v, errEl) {
   v = String(v || "").trim();
   const showErr = m => { if (errEl) errEl.textContent = m; else toast(m); };
-  if (v && !/^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[\w-]+\/exec\b/.test(v)) { showErr("Link phải có dạng https://script.google.com/macros/s/…/exec"); return; }
+  if (v && !/^https:\/\/script\.google\.com\/(a\/macros\/[^/\s]+|(a\/[^/\s]+\/)?macros)\/s\/[\w-]+\/exec(\?\S*)?$/.test(v)) { showErr("Link phải có dạng https://script.google.com/macros/s/…/exec"); return; }
   const ref = FB.doc(FB_DB, "teams", S.teamId, "items", OV_DOC);
   try {
     if (!v) { await FB.deleteDoc(ref); OV.data = null; store.set("ovData." + S.teamId, ""); toast("Đã ngắt kết nối Google Sheet"); return; }
