@@ -378,7 +378,7 @@
   .ovbtn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .ovbtn.spin svg{animation:ovSpin .8s linear infinite}
   @keyframes ovSpin{to{transform:rotate(360deg)}}
-  .ovb{flex:1;min-height:0;overflow:auto;padding:8px 8px 20px}
+  .ovb{flex:1;min-height:0;overflow:auto;padding:8px 8px 20px;position:relative}
   .ovb::-webkit-scrollbar{width:9px}
   .ovb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:9px;border:2px solid var(--stage)}
   .of{margin:0 0 8px}
@@ -2580,19 +2580,37 @@ function ovPlace(d, x, y) {
   const r = d.box.getBoundingClientRect();
   d.box.style.transform = `translate(${x - d.gx - r.left}px, ${y - d.gy - r.top}px)`;
 }
+// vị trí "thật" của 1 file trong danh sách (bỏ qua transform đang trượt) → không bị nhầm khi các file đang chạy animation
+function ovLayoutRect(el) {
+  const c = ovBody.getBoundingClientRect();
+  const left = c.left + el.offsetLeft - ovBody.scrollLeft, top = c.top + el.offsetTop - ovBody.scrollTop;
+  return { left, top, right: left + el.offsetWidth, bottom: top + el.offsetHeight, mx: left + el.offsetWidth / 2, my: top + el.offsetHeight / 2 };
+}
 function ovMoveDrag(x, y) {
   const d = ovDrag; if (!d) return;
-  const boxes = [...ovBody.querySelectorAll(".of")];
-  const over = boxes.find(el => { if (el === d.box) return false; const r = el.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; });
-  if (over) {
+  const boxes = [...ovBody.querySelectorAll(".of")], from = boxes.indexOf(d.box);
+  let target = null;
+  for (let i = 0; i < boxes.length; i++) {
+    const el = boxes[i]; if (el === d.box) continue;
+    const r = ovLayoutRect(el);
+    if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+    // chỉ đổi chỗ khi con trỏ đã qua nửa file bên cạnh (theo hướng kéo) → đổi xong không bị đổi ngược lại (hết chớp)
+    const sameCol = Math.abs(el.offsetLeft - d.box.offsetLeft) < 4;
+    const past = i > from ? (sameCol ? y > r.my : x > r.mx) : (sameCol ? y < r.my : x < r.mx);
+    if (past) target = el;
+    break;
+  }
+  if (target) {
     const first = new Map(boxes.filter(el => el !== d.box).map(el => [el, el.getBoundingClientRect()]));
-    const from = boxes.indexOf(d.box), to = boxes.indexOf(over);
-    over.parentNode.insertBefore(d.box, to > from ? over.nextSibling : over);
+    const to = boxes.indexOf(target);
+    target.parentNode.insertBefore(d.box, to > from ? target.nextSibling : target);
     for (const [el, a] of first) {
+      el.style.transition = "none"; el.style.transform = "";
       const b = el.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
       if (!dx && !dy) continue;
-      el.style.transition = "none"; el.style.transform = `translate(${dx}px, ${dy}px)`;
-      requestAnimationFrame(() => { el.style.transition = "transform .22s cubic-bezier(.22,1,.36,1)"; el.style.transform = ""; });
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      el.getBoundingClientRect();
+      el.style.transition = "transform .22s cubic-bezier(.22,1,.36,1)"; el.style.transform = "";
     }
   }
   ovPlace(d, x, y);
